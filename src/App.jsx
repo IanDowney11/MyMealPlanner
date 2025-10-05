@@ -1,27 +1,51 @@
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
-// Import your page components (create these as placeholders)
+// Import your page components
 import Home from './pages/Home'
-import Recipes from './pages/Recipes'
+import Meals from './pages/Meals'
+import MealPlanner from './pages/MealPlanner'
 import ShoppingList from './pages/ShoppingList'
+import Navigation from './components/Navigation'
 
 function App() {
   return (
     <Router>
-      <div style={{ padding: '1rem' }}>
-        {/* Navigation Links */}
-        <nav style={{ marginBottom: '1rem' }}>
-          <Link to="/" style={{ marginRight: '1rem' }}>Home</Link>
-          <Link to="/recipes" style={{ marginRight: '1rem' }}>Recipes</Link>
-          <Link to="/shopping-list">Shopping List</Link>
-        </nav>
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <Navigation />
 
-        {/* Routes */}
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/recipes" element={<Recipes />} />
-          <Route path="/shopping-list" element={<ShoppingList />} />
+          <Route path="/" element={
+            <main style={{
+              padding: '20px',
+              maxWidth: '1200px',
+              margin: '0 auto'
+            }}>
+              <Home />
+            </main>
+          } />
+          <Route path="/meals" element={
+            <main style={{
+              padding: '20px',
+              maxWidth: '1200px',
+              margin: '0 auto'
+            }}>
+              <Meals />
+            </main>
+          } />
+          <Route path="/meal-planner" element={<MealPlanner />} />
+          <Route path="/shopping-list" element={
+            <main style={{
+              padding: '20px',
+              maxWidth: '1200px',
+              margin: '0 auto'
+            }}>
+              <ShoppingList />
+            </main>
+          } />
         </Routes>
       </div>
     </Router>
