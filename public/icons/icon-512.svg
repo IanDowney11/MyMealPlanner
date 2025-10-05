@@ -1,0 +1,5 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+        <rect width="512" height="512" fill="#1a1d29" rx="51"/>
+        <rect x="128" y="128" width="256" height="256" fill="#ffffff" rx="25"/>
+        <text x="256" y="288" font-family="Arial" font-size="85" font-weight="bold" text-anchor="middle" fill="#1a1d29">MP</text>
+    </svg>
