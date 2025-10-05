@@ -92,15 +92,34 @@ export async function getMealById(id) {
 }
 
 // Meal Plan functions
-export async function saveMealPlan(date, meal) {
+export async function saveMealPlan(date, meal, useFromFreezer = null) {
   if (!db) await initDB();
 
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
   const weekKey = getWeekKey(dateStr);
 
+  // Determine if we should use from freezer
+  let fromFreezer = false;
+  let updatedMeal = { ...meal };
+
+  if (useFromFreezer === null) {
+    // Auto-determine: use from freezer if portions available
+    fromFreezer = meal.freezerPortions > 0;
+  } else {
+    fromFreezer = useFromFreezer;
+  }
+
+  // If using from freezer, reduce the freezer portions in the meal
+  if (fromFreezer && meal.freezerPortions > 0) {
+    updatedMeal.freezerPortions = meal.freezerPortions - 1;
+    // Update the meal in the meals store
+    await saveMeal(updatedMeal);
+  }
+
   const mealPlan = {
     date: dateStr,
-    meal: meal,
+    meal: updatedMeal,
+    fromFreezer: fromFreezer,
     weekKey: weekKey,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
@@ -150,13 +169,28 @@ export async function deleteMealPlan(date) {
 
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction([PLANS_STORE], 'readwrite');
-    const store = transaction.objectStore(PLANS_STORE);
-    const request = store.delete(dateStr);
+  // First get the meal plan to check if it was from freezer
+  const existingPlan = await getMealPlan(dateStr);
 
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(true);
+  return new Promise(async (resolve, reject) => {
+    try {
+      // If the meal was from freezer, restore the freezer portion
+      if (existingPlan && existingPlan.fromFreezer) {
+        const mealToUpdate = { ...existingPlan.meal };
+        mealToUpdate.freezerPortions = (mealToUpdate.freezerPortions || 0) + 1;
+        await saveMeal(mealToUpdate);
+      }
+
+      // Now delete the meal plan
+      const transaction = db.transaction([PLANS_STORE], 'readwrite');
+      const store = transaction.objectStore(PLANS_STORE);
+      const request = store.delete(dateStr);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(true);
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 

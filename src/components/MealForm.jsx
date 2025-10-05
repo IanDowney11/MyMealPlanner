@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input } from '@mui/material';
+import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
 
 function MealForm({ meal = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -59,190 +61,138 @@ function MealForm({ meal = null, onSave, onCancel }) {
     onSave(mealData);
   };
 
-  const renderStars = () => {
-    return (
-      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <label key={star} style={{ cursor: 'pointer', fontSize: '20px' }}>
-            <input
-              type="radio"
-              name="rating"
-              value={star}
-              checked={formData.rating === star}
-              onChange={handleChange}
-              style={{ display: 'none' }}
-            />
-            <span style={{ color: star <= formData.rating ? '#ffd700' : '#ddd' }}>
-              ⭐
-            </span>
-          </label>
-        ))}
-        <span style={{ marginLeft: '10px', fontSize: '14px', color: '#666' }}>
-          {formData.rating} out of 5
-        </span>
-      </div>
-    );
-  };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '30px',
-        borderRadius: '12px',
-        width: '90%',
-        maxWidth: '500px',
-        maxHeight: '90vh',
-        overflow: 'auto'
-      }}>
-        <h2 style={{ marginTop: 0, marginBottom: '20px' }}>
+    <Dialog
+      open={true}
+      onClose={onCancel}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: 2 }
+      }}
+    >
+      <DialogTitle>
+        <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
           {meal ? 'Edit Meal' : 'Add New Meal'}
-        </h2>
+        </Typography>
+      </DialogTitle>
 
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Title *
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              required
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '16px'
-              }}
-            />
-          </div>
+      <DialogContent>
+        <Box component="form" onSubmit={handleSubmit} sx={{ pt: 1 }}>
+          <TextField
+            name="title"
+            label="Title"
+            value={formData.title}
+            onChange={handleChange}
+            required
+            fullWidth
+            margin="normal"
+            variant="outlined"
+          />
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="3"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '16px',
-                resize: 'vertical'
-              }}
-            />
-          </div>
+          <TextField
+            name="description"
+            label="Description"
+            value={formData.description}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+            multiline
+            rows={3}
+          />
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <FormControl sx={{ mt: 2, mb: 2 }}>
+            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
               Rating
-            </label>
-            {renderStars()}
-          </div>
+            </FormLabel>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Rating
+                name="rating"
+                value={formData.rating}
+                onChange={(event, newValue) => {
+                  setFormData(prev => ({ ...prev, rating: newValue || 1 }));
+                }}
+                size="large"
+              />
+              <Typography variant="body2" color="text.secondary">
+                {formData.rating} out of 5
+              </Typography>
+            </Box>
+          </FormControl>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-              Portions in Freezer
-            </label>
-            <input
-              type="number"
-              name="freezerPortions"
-              value={formData.freezerPortions}
-              onChange={handleChange}
-              min="0"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '16px'
-              }}
-            />
-          </div>
+          <TextField
+            name="freezerPortions"
+            label={`${formData.freezerPortions === 1 ? 'Portion' : 'Portions'} in Freezer`}
+            type="number"
+            value={formData.freezerPortions}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+            inputProps={{ min: 0 }}
+          />
 
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+          <FormControl sx={{ mt: 2, mb: 2 }} fullWidth>
+            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
               Image
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                fontSize: '16px'
-              }}
-            />
+            </FormLabel>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              sx={{ mb: 2 }}
+            >
+              Choose Image
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                sx={{ display: 'none' }}
+              />
+            </Button>
             {imagePreview && (
-              <div style={{ marginTop: '10px' }}>
-                <img
+              <Box sx={{ mt: 1 }}>
+                <Box
+                  component="img"
                   src={imagePreview}
                   alt="Preview"
-                  style={{
+                  sx={{
                     width: '100%',
-                    maxHeight: '200px',
+                    maxHeight: 200,
                     objectFit: 'cover',
-                    borderRadius: '6px'
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'grey.300'
                   }}
                 />
-              </div>
+              </Box>
             )}
-          </div>
+          </FormControl>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={{
-                padding: '10px 20px',
-                border: '1px solid #ddd',
-                borderRadius: '6px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '6px',
-                backgroundColor: '#4a90e2',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              {meal ? 'Update Meal' : 'Save Meal'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 3, gap: 1 }}>
+        <Button
+          onClick={onCancel}
+          variant="outlined"
+          startIcon={<CancelIcon />}
+          size="large"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          startIcon={<SaveIcon />}
+          size="large"
+        >
+          {meal ? 'Update Meal' : 'Save Meal'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 

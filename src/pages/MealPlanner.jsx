@@ -1,4 +1,24 @@
 import React, { useState, useEffect } from 'react';
+import {
+  Button,
+  IconButton,
+  Typography,
+  Card,
+  CardContent,
+  Paper,
+  Box,
+  CircularProgress,
+  Chip,
+  Avatar,
+  Divider,
+  Rating
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
 import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/storage';
 
 function MealPlanner() {
@@ -9,13 +29,17 @@ function MealPlanner() {
   const [draggedMeal, setDraggedMeal] = useState(null);
   const [weeklyPlan, setWeeklyPlan] = useState({});
   const [currentWeekStart, setCurrentWeekStart] = useState(null);
+  const [selectedWeekOffset, setSelectedWeekOffset] = useState(0);
 
-  // Calculate current week dates
-  const getWeekDates = () => {
+  // Calculate week dates based on selected week offset
+  const getWeekDates = (weekOffset = selectedWeekOffset) => {
     const today = new Date();
     const monday = getMonday(today);
-    const dates = [];
 
+    // Add the week offset (7 days per week)
+    monday.setDate(monday.getDate() + (weekOffset * 7));
+
+    const dates = [];
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
@@ -58,7 +82,7 @@ function MealPlanner() {
     }
   };
 
-  const weekDates = getWeekDates();
+  const weekDates = getWeekDates(selectedWeekOffset);
 
   useEffect(() => {
     loadMeals();
@@ -74,7 +98,7 @@ function MealPlanner() {
       setCurrentWeekStart(mondayStr);
       loadWeekPlan();
     }
-  }, []);
+  }, [selectedWeekOffset]);
 
   const checkScreenSize = () => {
     const mobile = window.innerWidth <= 768;
@@ -129,12 +153,16 @@ function MealPlanner() {
     if (draggedMeal) {
       try {
         const dateStr = formatDate(date);
-        await saveMealPlan(dateStr, draggedMeal);
+        const savedPlan = await saveMealPlan(dateStr, draggedMeal);
 
+        // Update weekly plan with the updated meal data and fromFreezer info
         setWeeklyPlan(prev => ({
           ...prev,
-          [dateStr]: draggedMeal
+          [dateStr]: savedPlan
         }));
+
+        // Reload meals to update freezer counts in sidebar
+        await loadMeals();
         setDraggedMeal(null);
       } catch (error) {
         console.error('Error saving meal plan:', error);
@@ -153,6 +181,9 @@ function MealPlanner() {
         delete newPlan[dateStr];
         return newPlan;
       });
+
+      // Reload meals to update freezer counts in sidebar
+      await loadMeals();
     } catch (error) {
       console.error('Error removing meal plan:', error);
       alert('Error removing meal plan. Please try again.');
@@ -163,206 +194,270 @@ function MealPlanner() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const renderMealCard = (meal, isInSidebar = true) => (
-    <div
-      key={meal.id}
-      draggable={isInSidebar}
-      onDragStart={(e) => isInSidebar && handleDragStart(e, meal)}
-      style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: '15px',
-        marginBottom: '12px',
-        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        cursor: isInSidebar ? 'grab' : 'default',
-        border: '2px solid transparent',
-        transition: 'all 0.3s ease',
-        userSelect: 'none'
-      }}
-      onMouseEnter={(e) => {
-        if (isInSidebar) {
-          e.target.style.transform = 'translateY(-2px)';
-          e.target.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (isInSidebar) {
-          e.target.style.transform = 'translateY(0)';
-          e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-        }
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {meal.image ? (
-          <img
-            src={meal.image}
-            alt={meal.title}
-            style={{
-              width: '50px',
-              height: '50px',
-              objectFit: 'cover',
-              borderRadius: '8px'
-            }}
-          />
-        ) : (
-          <div style={{
-            width: '50px',
-            height: '50px',
-            backgroundColor: '#f0f0f0',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px'
-          }}>
-            🍽️
-          </div>
-        )}
+  const goToNextWeek = () => {
+    setSelectedWeekOffset(prev => prev + 1);
+  };
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h4 style={{
-            margin: '0 0 4px 0',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: '#333',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
-            {meal.title}
-          </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', gap: '2px' }}>
-              {Array.from({ length: meal.rating || 0 }, (_, index) => (
-                <span key={index} style={{ color: '#ffd700', fontSize: '14px' }}>⭐</span>
-              ))}
-            </div>
-            {meal.freezerPortions > 0 && (
-              <span style={{
-                backgroundColor: '#d4edda',
-                color: '#155724',
-                padding: '2px 6px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                {meal.freezerPortions} frozen
-              </span>
+  const goToLastWeek = () => {
+    setSelectedWeekOffset(prev => prev - 1);
+  };
+
+  const goToCurrentWeek = () => {
+    setSelectedWeekOffset(0);
+  };
+
+  const getWeekDisplayText = () => {
+    if (selectedWeekOffset === 0) {
+      return "This Week";
+    } else if (selectedWeekOffset === 1) {
+      return "Next Week";
+    } else if (selectedWeekOffset === -1) {
+      return "Last Week";
+    } else if (selectedWeekOffset > 1) {
+      return `${selectedWeekOffset} Weeks Ahead`;
+    } else {
+      return `${Math.abs(selectedWeekOffset)} Weeks Ago`;
+    }
+  };
+
+  const renderMealCard = (data, isInSidebar = true) => {
+    // Handle both meal objects (sidebar) and meal plan objects (calendar)
+    const meal = data.meal || data;
+    const isFromFreezer = data.fromFreezer || false;
+    const isMealPlan = !isInSidebar && data.meal; // Calendar display
+
+    return (
+      <Card
+        key={meal.id}
+        draggable={isInSidebar}
+        onDragStart={(e) => isInSidebar && handleDragStart(e, meal)}
+        sx={{
+          mb: 1.5,
+          cursor: isInSidebar ? 'grab' : 'default',
+          border: '2px solid transparent',
+          transition: 'all 0.3s ease',
+          userSelect: 'none',
+          '&:hover': isInSidebar ? {
+            transform: 'translateY(-2px)',
+            boxShadow: 2
+          } : {}
+        }}
+      >
+        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {meal.image ? (
+              <Avatar
+                src={meal.image}
+                alt={meal.title}
+                sx={{
+                  width: 50,
+                  height: 50,
+                  borderRadius: 1
+                }}
+                variant="rounded"
+              />
+            ) : (
+              <Avatar
+                sx={{
+                  width: 50,
+                  height: 50,
+                  bgcolor: 'grey.100',
+                  borderRadius: 1,
+                  fontSize: '20px'
+                }}
+                variant="rounded"
+              >
+                🥘
+              </Avatar>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 'bold',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  mb: 0.5
+                }}
+              >
+                {meal.title}
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                <Rating
+                  value={meal.rating || 0}
+                  readOnly
+                  size="small"
+                  precision={1}
+                />
+                {isInSidebar ? (
+                  // Sidebar: show freezer portions count
+                  meal.freezerPortions > 0 && (
+                    <Chip
+                      label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} frozen`}
+                      color="success"
+                      size="small"
+                      sx={{
+                        fontSize: '11px',
+                        height: 20,
+                        maxWidth: '100%',
+                        '& .MuiChip-label': {
+                          px: 1,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }
+                      }}
+                    />
+                  )
+                ) : (
+                  // Calendar: show freezer vs fresh indicator
+                  <Chip
+                    label={isFromFreezer ? '🧊 From Freezer' : '🔥 Cook Fresh'}
+                    color={isFromFreezer ? 'info' : 'warning'}
+                    size="small"
+                    sx={{
+                      fontSize: '11px',
+                      height: 20,
+                      maxWidth: '100%',
+                      '& .MuiChip-label': {
+                        px: 1,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderCalendarDay = (date) => {
     const dateStr = formatDate(date);
     const plannedMeal = weeklyPlan[dateStr];
 
     return (
-      <div
+      <Paper
         key={dateStr}
-        style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          minHeight: '200px',
-          border: '2px dashed #dee2e6',
-          transition: 'all 0.3s ease'
+        elevation={1}
+        sx={{
+          p: 2,
+          minHeight: 200,
+          border: '2px dashed',
+          borderColor: 'divider',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'action.hover'
+          }
         }}
         onDragOver={handleDragOver}
         onDrop={(e) => handleDrop(e, date)}
         onDragEnter={(e) => {
-          e.target.style.borderColor = '#4a90e2';
-          e.target.style.backgroundColor = '#f8f9ff';
+          e.currentTarget.style.borderColor = '#4a90e2';
+          e.currentTarget.style.backgroundColor = '#f8f9ff';
         }}
         onDragLeave={(e) => {
-          e.target.style.borderColor = '#dee2e6';
-          e.target.style.backgroundColor = 'white';
+          e.currentTarget.style.borderColor = '';
+          e.currentTarget.style.backgroundColor = '';
         }}
       >
-        <h3 style={{
-          margin: '0 0 16px 0',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          color: '#333',
-          textAlign: 'center',
-          borderBottom: '2px solid #f0f0f0',
-          paddingBottom: '8px',
-          lineHeight: '1.3'
-        }}>
+        <Typography
+          variant="h6"
+          sx={{
+            textAlign: 'center',
+            mb: 2,
+            pb: 1,
+            borderBottom: 1,
+            borderColor: 'divider',
+            lineHeight: 1.3
+          }}
+        >
           {formatDisplayDate(date)}
-        </h3>
+        </Typography>
 
-        <div style={{ textAlign: 'center', marginBottom: '12px', fontSize: '14px', color: '#666' }}>
-          🍽️ Dinner
-        </div>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ textAlign: 'center', mb: 1.5 }}
+        >
+          Dinner
+        </Typography>
 
         {plannedMeal ? (
-          <div style={{ position: 'relative' }}>
+          <Box sx={{ position: 'relative' }}>
             {renderMealCard(plannedMeal, false)}
-            <button
+            <IconButton
               onClick={() => removeMealFromDay(date)}
-              style={{
+              color="error"
+              size="small"
+              sx={{
                 position: 'absolute',
-                top: '8px',
-                right: '8px',
-                backgroundColor: '#dc3545',
+                top: 8,
+                right: 8,
+                backgroundColor: 'error.main',
                 color: 'white',
-                border: 'none',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
-                fontSize: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                '&:hover': {
+                  backgroundColor: 'error.dark',
+                }
               }}
             >
-              ✕
-            </button>
-          </div>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
         ) : (
-          <div style={{
-            textAlign: 'center',
-            color: '#999',
-            fontSize: '14px',
-            fontStyle: 'italic',
-            padding: '40px 20px'
-          }}>
-            Drag a meal here
-          </div>
+          <Box
+            sx={{
+              textAlign: 'center',
+              color: 'text.disabled',
+              fontStyle: 'italic',
+              py: 5,
+              px: 2.5
+            }}
+          >
+            <Typography variant="body2" color="text.disabled">
+              Drag a meal here
+            </Typography>
+          </Box>
         )}
-      </div>
+      </Paper>
     );
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2>Loading meal planner...</h2>
-      </div>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2 }}>
+        <CircularProgress color="primary" size={40} />
+        <Typography variant="h6" color="text.secondary">
+          Loading meal planner...
+        </Typography>
+      </Box>
     );
   }
 
   return (
-    <div style={{
+    <Box sx={{
       display: 'flex',
       height: 'calc(100vh - 64px)', // Subtract navigation height
-      backgroundColor: '#f8f9fa',
+      bgcolor: 'background.default',
       position: 'relative'
     }}>
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
-        <div
-          style={{
+        <Box
+          sx={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            bgcolor: 'rgba(0, 0, 0, 0.5)',
             zIndex: 999
           }}
           onClick={() => setSidebarOpen(false)}
@@ -370,127 +465,177 @@ function MealPlanner() {
       )}
 
       {/* Sidebar */}
-      <div style={{
-        width: sidebarOpen ? '320px' : '0',
-        backgroundColor: 'white',
-        borderRight: '1px solid #dee2e6',
-        overflow: 'hidden',
-        transition: 'width 0.3s ease',
-        zIndex: isMobile ? 1000 : 1,
-        position: isMobile ? 'fixed' : 'relative',
-        height: '100%',
-        boxShadow: isMobile ? '2px 0 8px rgba(0, 0, 0, 0.1)' : 'none'
-      }}>
-        <div style={{ padding: '20px', height: '100%', overflowY: 'auto' }}>
-          <div style={{
+      <Paper
+        elevation={isMobile ? 2 : 0}
+        sx={{
+          width: sidebarOpen ? 320 : 0,
+          borderRight: 1,
+          borderColor: 'divider',
+          overflow: 'hidden',
+          transition: 'width 0.3s ease',
+          zIndex: isMobile ? 1000 : 1,
+          position: isMobile ? 'fixed' : 'relative',
+          height: '100%',
+          borderRadius: 0
+        }}
+      >
+        <Box sx={{ p: 2.5, pt: isMobile ? 2.5 : 4, height: '100%', overflowY: 'auto' }}>
+          <Box sx={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '20px'
+            mb: 2.5
           }}>
-            <h2 style={{ margin: 0, color: '#333', fontSize: '20px' }}>
+            <Typography
+              variant="h6"
+              color="text.primary"
+            >
               Available Meals
-            </h2>
+            </Typography>
             {isMobile && (
-              <button
+              <IconButton
                 onClick={() => setSidebarOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#666'
-                }}
+                color="inherit"
               >
-                ✕
-              </button>
+                <CloseIcon />
+              </IconButton>
             )}
-          </div>
+          </Box>
 
           {meals.length === 0 ? (
-            <div style={{
+            <Box sx={{
               textAlign: 'center',
-              padding: '40px 20px',
-              color: '#666'
+              py: 5,
+              px: 2.5,
+              color: 'text.secondary'
             }}>
-              <p>No meals available.</p>
-              <p style={{ fontSize: '14px' }}>Add some meals first!</p>
-            </div>
+              <Typography variant="body1" gutterBottom>
+                No meals available.
+              </Typography>
+              <Typography variant="body2" color="text.disabled">
+                Add some meals first!
+              </Typography>
+            </Box>
           ) : (
-            <div>
-              <p style={{
-                fontSize: '14px',
-                color: '#666',
-                marginBottom: '16px',
-                fontStyle: 'italic'
-              }}>
+            <Box>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  mb: 2,
+                  fontStyle: 'italic'
+                }}
+              >
                 Drag meals to plan your week
-              </p>
+              </Typography>
               {meals.map(meal => renderMealCard(meal, true))}
-            </div>
+            </Box>
           )}
-        </div>
-      </div>
+        </Box>
+      </Paper>
 
       {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '20px',
-          borderBottom: '1px solid #dee2e6',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <button
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            borderBottom: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+            borderRadius: 0
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <IconButton
               onClick={toggleSidebar}
-              style={{
-                background: 'none',
-                border: '1px solid #dee2e6',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                color: '#666'
+              color="primary"
+              sx={{
+                border: 1,
+                borderColor: 'divider'
               }}
             >
-              ☰
-            </button>
-            <h1 style={{ margin: 0, color: '#333' }}>Weekly Meal Planner</h1>
-          </div>
+              <MenuIcon />
+            </IconButton>
+            <Typography variant={isMobile ? "h5" : "h4"} color="text.primary">
+              Weekly Meal Planner
+            </Typography>
+          </Box>
 
-          <div style={{
-            fontSize: '14px',
-            color: '#666',
+          {/* Week Navigation */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexWrap: 'wrap'
+          }}>
+            <Button
+              onClick={goToLastWeek}
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              color="inherit"
+            >
+              Last Week
+            </Button>
+
+            <Chip
+              label={`📅 ${getWeekDisplayText()}`}
+              color={selectedWeekOffset === 0 ? "primary" : "default"}
+              onClick={selectedWeekOffset !== 0 ? goToCurrentWeek : undefined}
+              sx={{
+                minWidth: 120,
+                fontWeight: 'bold',
+                cursor: selectedWeekOffset !== 0 ? 'pointer' : 'default'
+              }}
+            />
+
+            <Button
+              onClick={goToNextWeek}
+              variant="outlined"
+              endIcon={<ArrowForwardIcon />}
+              color="inherit"
+            >
+              Next Week
+            </Button>
+          </Box>
+
+          <Box sx={{
             textAlign: 'right'
           }}>
-            <div>📅 This Week's Plan</div>
-            <div style={{ fontSize: '12px', marginTop: '4px' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+              {weekDates.length > 0 &&
+                `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+              }
+            </Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
               {Object.keys(weeklyPlan).length} of 7 days planned
-            </div>
-          </div>
-        </div>
+            </Typography>
+          </Box>
+        </Paper>
 
         {/* Calendar Grid */}
-        <div style={{
+        <Box sx={{
           flex: 1,
-          padding: '20px',
+          p: 2.5,
           overflowY: 'auto'
         }}>
-          <div style={{
+          <Box sx={{
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '20px',
-            maxWidth: '1400px',
+            gap: 2.5,
+            maxWidth: 1400,
             margin: '0 auto'
           }}>
             {weekDates.map(date => renderCalendarDay(date))}
-          </div>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 }
 

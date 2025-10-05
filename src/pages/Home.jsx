@@ -1,16 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Button, Typography, Card, CardContent, CardMedia, Box, Chip, CircularProgress, Rating } from '@mui/material';
+import { Add as AddIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
-import { saveMeal, initDB } from '../services/storage';
+import { saveMeal, initDB, getMealPlan } from '../services/storage';
 
 function Home() {
   const [rating, setRating] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
   const [showMealForm, setShowMealForm] = useState(false);
+  const [todaysPlannedMeal, setTodaysPlannedMeal] = useState(null);
+  const [loadingPlannedMeal, setLoadingPlannedMeal] = useState(true);
 
-  const todaysDinner = {
-    name: "Spaghetti Carbonara",
-    image: "https://images.unsplash.com/photo-1621996346565-e3dbc353d2e5?w=400&h=300&fit=crop",
-    description: "Classic Italian pasta with eggs, cheese, and pancetta"
+  useEffect(() => {
+    loadTodaysPlannedMeal();
+  }, []);
+
+  const loadTodaysPlannedMeal = async () => {
+    try {
+      await initDB();
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+      const mealPlan = await getMealPlan(todayStr);
+      setTodaysPlannedMeal(mealPlan?.meal || null);
+    } catch (error) {
+      console.error('Error loading today\'s planned meal:', error);
+    } finally {
+      setLoadingPlannedMeal(false);
+    }
   };
 
   const handleStarClick = (starIndex) => {
@@ -38,141 +56,185 @@ function Home() {
   };
 
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
+    <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+      <Typography
+        variant="h3"
+        component="h1"
+        sx={{
+          textAlign: 'center',
+          mb: 4,
+          fontWeight: 'bold',
+          color: 'primary.main'
+        }}
+      >
         Today's Meal Plan
-      </h1>
+      </Typography>
 
-      <div style={{
-        backgroundColor: '#fff',
-        borderRadius: '12px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        overflow: 'hidden',
-        marginBottom: '20px'
-      }}>
-        <div style={{
-          backgroundColor: '#4a90e2',
-          color: 'white',
-          padding: '15px 20px',
-          fontSize: '18px',
-          fontWeight: 'bold'
-        }}>
-          🍽️ Tonight's Dinner
-        </div>
-
-        <div style={{ padding: '20px' }}>
-          <img
-            src={todaysDinner.image}
-            alt={todaysDinner.name}
-            style={{
-              width: '100%',
-              height: '200px',
-              objectFit: 'cover',
-              borderRadius: '8px',
-              marginBottom: '15px'
-            }}
-          />
-
-          <h3 style={{
-            margin: '0 0 10px 0',
-            color: '#333',
-            fontSize: '24px'
-          }}>
-            {todaysDinner.name}
-          </h3>
-
-          <p style={{
-            color: '#666',
-            marginBottom: '20px',
-            fontSize: '16px',
-            lineHeight: '1.4'
-          }}>
-            {todaysDinner.description}
-          </p>
-
-          <div style={{ borderTop: '1px solid #eee', paddingTop: '20px' }}>
-            <h4 style={{
-              margin: '0 0 15px 0',
-              color: '#333',
-              fontSize: '18px'
-            }}>
-              Rate this meal:
-            </h4>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                {[1, 2, 3, 4, 5].map((starIndex) => (
-                  <span
-                    key={starIndex}
-                    onClick={() => handleStarClick(starIndex)}
-                    onMouseEnter={() => handleStarHover(starIndex)}
-                    onMouseLeave={handleStarLeave}
-                    style={{
-                      fontSize: '28px',
-                      cursor: 'pointer',
-                      color: (hoveredStar >= starIndex || rating >= starIndex) ? '#ffd700' : '#ddd',
-                      transition: 'color 0.2s ease',
-                      userSelect: 'none'
-                    }}
-                  >
-                    ⭐
-                  </span>
-                ))}
-              </div>
-
-              {rating > 0 && (
-                <span style={{
-                  marginLeft: '10px',
-                  color: '#666',
-                  fontSize: '16px'
-                }}>
-                  {rating} out of 5 stars
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Add Meal Button */}
-      <div style={{
-        textAlign: 'center',
-        marginTop: '30px',
-        marginBottom: '20px'
-      }}>
-        <button
-          onClick={() => setShowMealForm(true)}
-          style={{
-            padding: '16px 32px',
-            backgroundColor: '#28a745',
+      <Card sx={{ mb: 3, overflow: 'hidden' }}>
+        <Box
+          sx={{
+            bgcolor: 'primary.main',
             color: 'white',
-            border: 'none',
-            borderRadius: '12px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            boxShadow: '0 4px 6px rgba(40, 167, 69, 0.3)',
-            transition: 'all 0.3s ease',
+            p: 2,
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            margin: '0 auto'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#218838';
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 6px 12px rgba(40, 167, 69, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#28a745';
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 4px 6px rgba(40, 167, 69, 0.3)';
+            gap: 1
           }}
         >
-          <span style={{ fontSize: '20px' }}>➕</span>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+            Tonight's Dinner
+          </Typography>
+        </Box>
+
+        <CardContent>
+          {loadingPlannedMeal ? (
+            <Box sx={{ textAlign: 'center', py: 5, px: 3 }}>
+              <CircularProgress sx={{ mb: 2 }} />
+              <Typography variant="body1" color="text.secondary">
+                Loading tonight's dinner plan...
+              </Typography>
+            </Box>
+          ) : todaysPlannedMeal ? (
+            <>
+              {todaysPlannedMeal.image ? (
+                <CardMedia
+                  component="img"
+                  height="200"
+                  image={todaysPlannedMeal.image}
+                  alt={todaysPlannedMeal.title}
+                  sx={{ borderRadius: 1, mb: 2 }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 200,
+                    bgcolor: 'grey.100',
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '48px',
+                    mb: 2
+                  }}
+                >
+                  🥘
+                </Box>
+              )}
+
+              <Typography
+                variant="h5"
+                component="h3"
+                sx={{ mb: 1, fontWeight: 'bold' }}
+              >
+                {todaysPlannedMeal.title}
+              </Typography>
+
+              {todaysPlannedMeal.description && (
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 2, lineHeight: 1.6 }}
+                >
+                  {todaysPlannedMeal.description}
+                </Typography>
+              )}
+
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                {todaysPlannedMeal.rating > 0 && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Rating:
+                    </Typography>
+                    <Rating
+                      value={todaysPlannedMeal.rating}
+                      readOnly
+                      size="small"
+                      precision={1}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      ({todaysPlannedMeal.rating}/5)
+                    </Typography>
+                  </Box>
+                )}
+
+                {todaysPlannedMeal.freezerPortions > 0 && (
+                  <Chip
+                    label={`${todaysPlannedMeal.freezerPortions} ${todaysPlannedMeal.freezerPortions === 1 ? 'portion' : 'portions'} in freezer`}
+                    color="success"
+                    variant="filled"
+                    size="small"
+                  />
+                )}
+              </Box>
+
+              <Box
+                sx={{
+                  borderTop: 1,
+                  borderColor: 'divider',
+                  pt: 2,
+                  textAlign: 'center'
+                }}
+              >
+                <Button
+                  component={Link}
+                  to="/meal-planner"
+                  variant="contained"
+                  startIcon={<CalendarIcon />}
+                  size="small"
+                >
+                  View Meal Planner
+                </Button>
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 5, px: 3 }}>
+              <Typography sx={{ fontSize: '48px', mb: 3 }}>🤔</Typography>
+              <Typography
+                variant="h5"
+                component="h3"
+                sx={{ mb: 2, fontWeight: 'bold' }}
+              >
+                No dinner planned for tonight
+              </Typography>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ mb: 3, lineHeight: 1.6 }}
+              >
+                Plan your meals for the week to see what's for dinner tonight!
+              </Typography>
+              <Button
+                component={Link}
+                to="/meal-planner"
+                variant="contained"
+                startIcon={<CalendarIcon />}
+                size="large"
+              >
+                Plan Your Meals
+              </Button>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+
+      <Box sx={{ textAlign: 'center', mt: 4, mb: 3 }}>
+        <Button
+          onClick={() => setShowMealForm(true)}
+          variant="contained"
+          color="secondary"
+          startIcon={<AddIcon />}
+          size="large"
+          sx={{
+            py: 2,
+            px: 4,
+            fontSize: '1.125rem',
+            fontWeight: 'bold'
+          }}
+        >
           Quick Add New Meal
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {/* Meal Form Modal */}
       {showMealForm && (
@@ -182,7 +244,7 @@ function Home() {
           onCancel={() => setShowMealForm(false)}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating } from '@mui/material';
+import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
 import { getMeals, saveMeal, deleteMeal, initDB } from '../services/storage';
 
@@ -117,415 +119,320 @@ function Meals() {
   };
 
   const getSortIcon = (field) => {
-    if (sortField !== field) return '↕️';
-    return sortDirection === 'asc' ? '↑' : '↓';
+    if (sortField !== field) {
+      return <UnfoldMoreIcon sx={{ fontSize: 16, opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc' ?
+      <ArrowUpIcon sx={{ fontSize: 16 }} /> :
+      <ArrowDownIcon sx={{ fontSize: 16 }} />;
   };
 
   const renderStars = (rating) => {
     return (
-      <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-        {Array.from({ length: rating }, (_, index) => (
-          <span
-            key={index}
-            style={{
-              color: '#ffd700',
-              fontSize: '16px'
-            }}
-          >
-            ⭐
-          </span>
-        ))}
-        <span style={{ marginLeft: '8px', fontSize: '14px', color: '#666' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Rating
+          value={rating}
+          readOnly
+          size="small"
+          precision={1}
+        />
+        <Typography variant="body2" color="text.secondary">
           ({rating}/5)
-        </span>
-      </div>
+        </Typography>
+      </Box>
     );
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '50px' }}>
-        <h2>Loading meals...</h2>
-      </div>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <CircularProgress sx={{ mb: 2 }} />
+        <Typography variant="h5">Loading meals...</Typography>
+      </Box>
     );
   }
 
   return (
-    <div>
-      <div style={{
+    <Box>
+      <Box sx={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '30px',
+        mb: 4,
         flexWrap: 'wrap',
-        gap: '20px'
+        gap: 3
       }}>
-        <h1 style={{ margin: 0, color: '#333' }}>My Meals</h1>
-        <button
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+          My Meals
+        </Typography>
+        <Button
           onClick={() => setShowForm(true)}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#4a90e2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: 'pointer',
-            fontWeight: 'bold'
-          }}
+          variant="contained"
+          startIcon={<AddIcon />}
+          size="large"
         >
-          ➕ Add New Meal
-        </button>
-      </div>
+          Add New Meal
+        </Button>
+      </Box>
 
-      {/* Search Section */}
       {meals.length > 0 && (
-        <div style={{
-          marginBottom: '30px',
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '15px',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ position: 'relative', width: '350px', maxWidth: '100%' }}>
-              <input
-                type="text"
+        <Card sx={{ mb: 4 }}>
+          <CardContent>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap'
+            }}>
+              <TextField
                 placeholder="Search meals by title or description..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                style={{
-                  width: '100%',
-                  padding: '12px 40px 12px 16px',
-                  border: '2px solid #e9ecef',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.3s ease',
-                  boxSizing: 'border-box'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#4a90e2';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e9ecef';
+                variant="outlined"
+                size="medium"
+                sx={{ width: 350, maxWidth: '100%' }}
+                InputProps={{
+                  startAdornment: (
+                    <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                  )
                 }}
               />
-              <span style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: '18px',
-                color: '#666'
-              }}>
-                🔍
-              </span>
-            </div>
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '15px',
-              flexWrap: 'wrap'
-            }}>
-              {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  style={{
-                    padding: '12px 16px',
-                    backgroundColor: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-
-              <div style={{
-                fontSize: '14px',
-                color: '#666',
-                fontWeight: '500',
-                whiteSpace: 'nowrap'
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap'
               }}>
-                {searchTerm ? (
-                  `${filteredAndSortedMeals.length} of ${meals.length} meals`
-                ) : (
-                  `${meals.length} total meals`
+                {searchTerm && (
+                  <Button
+                    onClick={clearSearch}
+                    variant="outlined"
+                    startIcon={<ClearIcon />}
+                    color="inherit"
+                  >
+                    Clear
+                  </Button>
                 )}
-              </div>
-            </div>
-          </div>
-        </div>
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}
+                >
+                  {searchTerm ? (
+                    `${filteredAndSortedMeals.length} of ${meals.length} meals`
+                  ) : (
+                    `${meals.length} total meals`
+                  )}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
       )}
 
       {meals.length === 0 ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '50px',
-          backgroundColor: '#f9f9f9',
-          borderRadius: '12px',
-          border: '2px dashed #ddd'
-        }}>
-          <h3 style={{ color: '#666', marginBottom: '10px' }}>No meals saved yet</h3>
-          <p style={{ color: '#999', marginBottom: '20px' }}>
-            Start by adding your first meal!
-          </p>
-          <button
-            onClick={() => setShowForm(true)}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#4a90e2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            Add Your First Meal
-          </button>
-        </div>
+        <Card sx={{ textAlign: 'center', py: 6, border: '2px dashed', borderColor: 'grey.300', bgcolor: 'grey.50' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+              No meals saved yet
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Start by adding your first meal!
+            </Typography>
+            <Button
+              onClick={() => setShowForm(true)}
+              variant="contained"
+              startIcon={<AddIcon />}
+              size="large"
+            >
+              Add Your First Meal
+            </Button>
+          </CardContent>
+        </Card>
       ) : filteredAndSortedMeals.length === 0 && searchTerm ? (
-        <div style={{
-          textAlign: 'center',
-          padding: '50px',
-          backgroundColor: '#fff3cd',
-          borderRadius: '12px',
-          border: '2px solid #ffeaa7'
-        }}>
-          <h3 style={{ color: '#856404', marginBottom: '10px' }}>No meals found</h3>
-          <p style={{ color: '#856404', marginBottom: '20px' }}>
-            No meals match your search for "{searchTerm}"
-          </p>
-          <button
-            onClick={clearSearch}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#ffc107',
-              color: '#212529',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '16px',
-              cursor: 'pointer',
-              fontWeight: 'bold'
-            }}
-          >
-            Clear Search
-          </button>
-        </div>
+        <Card sx={{ textAlign: 'center', py: 6, border: '2px solid', borderColor: 'warning.main', bgcolor: 'warning.light' }}>
+          <CardContent>
+            <Typography variant="h6" color="warning.dark" sx={{ mb: 1 }}>
+              No meals found
+            </Typography>
+            <Typography variant="body1" color="warning.dark" sx={{ mb: 3 }}>
+              No meals match your search for "{searchTerm}"
+            </Typography>
+            <Button
+              onClick={clearSearch}
+              variant="contained"
+              color="warning"
+              startIcon={<ClearIcon />}
+            >
+              Clear Search
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          overflow: 'hidden'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8f9fa' }}>
-                <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>
                   Image
-                </th>
-                <th
+                </TableCell>
+                <TableCell
                   onClick={() => handleSort('title')}
-                  style={{
-                    padding: '15px',
-                    textAlign: 'left',
-                    borderBottom: '1px solid #dee2e6',
+                  sx={{
                     cursor: 'pointer',
                     userSelect: 'none',
-                    backgroundColor: sortField === 'title' ? '#e3f2fd' : 'transparent',
-                    position: 'relative',
-                    transition: 'background-color 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (sortField !== 'title') {
-                      e.target.style.backgroundColor = '#f5f5f5';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (sortField !== 'title') {
-                      e.target.style.backgroundColor = 'transparent';
+                    bgcolor: sortField === 'title' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'title' ? 'primary.light' : 'grey.100'
                     }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Title
-                    <span style={{ fontSize: '14px', opacity: 0.7 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Title
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {getSortIcon('title')}
-                    </span>
-                  </div>
-                </th>
-                <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>
                   Description
-                </th>
-                <th
+                </TableCell>
+                <TableCell
                   onClick={() => handleSort('rating')}
-                  style={{
-                    padding: '15px',
-                    textAlign: 'left',
-                    borderBottom: '1px solid #dee2e6',
+                  sx={{
                     cursor: 'pointer',
                     userSelect: 'none',
-                    backgroundColor: sortField === 'rating' ? '#e3f2fd' : 'transparent',
-                    transition: 'background-color 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (sortField !== 'rating') {
-                      e.target.style.backgroundColor = '#f5f5f5';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (sortField !== 'rating') {
-                      e.target.style.backgroundColor = 'transparent';
+                    bgcolor: sortField === 'rating' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'rating' ? 'primary.light' : 'grey.100'
                     }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Rating
-                    <span style={{ fontSize: '14px', opacity: 0.7 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Rating
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {getSortIcon('rating')}
-                    </span>
-                  </div>
-                </th>
-                <th
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell
                   onClick={() => handleSort('freezerPortions')}
-                  style={{
-                    padding: '15px',
-                    textAlign: 'left',
-                    borderBottom: '1px solid #dee2e6',
+                  sx={{
                     cursor: 'pointer',
                     userSelect: 'none',
-                    backgroundColor: sortField === 'freezerPortions' ? '#e3f2fd' : 'transparent',
-                    transition: 'background-color 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (sortField !== 'freezerPortions') {
-                      e.target.style.backgroundColor = '#f5f5f5';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (sortField !== 'freezerPortions') {
-                      e.target.style.backgroundColor = 'transparent';
+                    bgcolor: sortField === 'freezerPortions' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'freezerPortions' ? 'primary.light' : 'grey.100'
                     }
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Freezer Portions
-                    <span style={{ fontSize: '14px', opacity: 0.7 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Freezer Portions
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {getSortIcon('freezerPortions')}
-                    </span>
-                  </div>
-                </th>
-                <th style={{ padding: '15px', textAlign: 'left', borderBottom: '1px solid #dee2e6' }}>
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell>
                   Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {filteredAndSortedMeals.map((meal) => (
-                <tr key={meal.id} style={{ borderBottom: '1px solid #dee2e6' }}>
-                  <td style={{ padding: '15px' }}>
+                <TableRow key={meal.id}>
+                  <TableCell>
                     {meal.image ? (
-                      <img
+                      <Box
+                        component="img"
                         src={meal.image}
                         alt={meal.title}
-                        style={{
-                          width: '60px',
-                          height: '60px',
+                        sx={{
+                          width: 60,
+                          height: 60,
                           objectFit: 'cover',
-                          borderRadius: '8px'
+                          borderRadius: 1
                         }}
                       />
                     ) : (
-                      <div style={{
-                        width: '60px',
-                        height: '60px',
-                        backgroundColor: '#f0f0f0',
-                        borderRadius: '8px',
+                      <Box sx={{
+                        width: 60,
+                        height: 60,
+                        bgcolor: 'grey.200',
+                        borderRadius: 1,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontSize: '24px'
                       }}>
-                        🍽️
-                      </div>
+                        🥘
+                      </Box>
                     )}
-                  </td>
-                  <td style={{ padding: '15px', fontWeight: 'bold' }}>
-                    {meal.title}
-                  </td>
-                  <td style={{ padding: '15px', color: '#666', maxWidth: '300px' }}>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                      {meal.title}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 300 }}>
                     {meal.description ? (
-                      meal.description.length > 100 ?
-                        meal.description.substring(0, 100) + '...' :
-                        meal.description
+                      <Typography variant="body2" color="text.secondary">
+                        {meal.description.length > 100 ?
+                          meal.description.substring(0, 100) + '...' :
+                          meal.description}
+                      </Typography>
                     ) : (
-                      <em style={{ color: '#999' }}>No description</em>
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.disabled' }}>
+                        No description
+                      </Typography>
                     )}
-                  </td>
-                  <td style={{ padding: '15px' }}>
+                  </TableCell>
+                  <TableCell>
                     {renderStars(meal.rating)}
-                  </td>
-                  <td style={{ padding: '15px', textAlign: 'center' }}>
-                    <span style={{
-                      backgroundColor: meal.freezerPortions > 0 ? '#d4edda' : '#f8d7da',
-                      color: meal.freezerPortions > 0 ? '#155724' : '#721c24',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '14px',
-                      fontWeight: 'bold'
-                    }}>
-                      {meal.freezerPortions}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={meal.freezerPortions}
+                      color={meal.freezerPortions > 0 ? 'success' : 'error'}
+                      variant="filled"
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
                         onClick={() => handleEditMeal(meal)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '14px'
-                        }}
+                        variant="contained"
+                        color="secondary"
+                        size="small"
+                        startIcon={<EditIcon />}
                       >
                         Edit
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDeleteMeal(meal.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#dc3545',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '14px'
-                        }}
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        startIcon={<DeleteIcon />}
                       >
                         Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
 
       {showForm && (
@@ -535,7 +442,7 @@ function Meals() {
           onCancel={handleCloseForm}
         />
       )}
-    </div>
+    </Box>
   );
 }
 

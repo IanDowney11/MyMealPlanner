@@ -1,198 +1,180 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  IconButton,
+  Box,
+  useTheme,
+  useMediaQuery,
+  ListItemButton,
+  Divider
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  Home as HomeIcon,
+  Restaurant as RestaurantIcon,
+  CalendarMonth as CalendarIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Settings as SettingsIcon,
+  Close as CloseIcon,
+  ChevronLeft as ChevronLeftIcon
+} from '@mui/icons-material';
 
-function Navigation() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+const drawerWidth = 280;
+
+function Navigation({ open, onToggle }) {
   const location = useLocation();
-
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const navItems = [
-    { path: '/', label: 'Home', icon: '🏠' },
-    { path: '/meals', label: 'Meals', icon: '🍽️' },
-    { path: '/meal-planner', label: 'Meal Planner', icon: '📅' },
-    { path: '/shopping-list', label: 'Shopping List', icon: '🛒' }
+    { path: '/', label: 'Home', icon: HomeIcon },
+    { path: '/meals', label: 'Meals', icon: RestaurantIcon },
+    { path: '/meal-planner', label: 'Meal Planner', icon: CalendarIcon },
+    { path: '/shopping-list', label: 'Shopping List', icon: ShoppingCartIcon },
+    { path: '/admin', label: 'Admin', icon: SettingsIcon }
   ];
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
 
   const isActive = (path) => {
     return location.pathname === path;
   };
 
-  return (
-    <nav style={{
-      backgroundColor: '#4a90e2',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 1000
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 20px',
+  const drawer = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Sidebar Header */}
+      <Box sx={{
         display: 'flex',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        height: '64px'
+        justifyContent: 'space-between',
+        p: 2,
+        minHeight: 64,
+        backgroundColor: 'primary.main',
+        color: 'white'
       }}>
-        {/* Logo/Brand */}
-        <Link
-          to="/"
-          style={{
-            color: 'white',
-            textDecoration: 'none',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
-          onClick={closeMenu}
-        >
-          🍽️ My Meal Planner
-        </Link>
+        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+          My Meal Planner
+        </Typography>
+        {!isMobile && (
+          <IconButton
+            onClick={onToggle}
+            sx={{ color: 'white' }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+        )}
+      </Box>
 
-        {/* Desktop Navigation */}
-        <div style={{
-          display: isMobile ? 'none' : 'flex',
-          gap: '0'
-        }}>
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              style={{
-                color: 'white',
-                textDecoration: 'none',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                margin: '0 4px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '16px',
-                fontWeight: '500',
-                backgroundColor: isActive(item.path) ? 'rgba(255,255,255,0.2)' : 'transparent',
-                transition: 'all 0.3s ease',
-                border: isActive(item.path) ? '2px solid rgba(255,255,255,0.3)' : '2px solid transparent'
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive(item.path)) {
-                  e.target.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive(item.path)) {
-                  e.target.style.backgroundColor = 'transparent';
-                }
-              }}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </div>
+      <Divider />
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={toggleMenu}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'white',
-            fontSize: '24px',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '4px',
-            transition: 'background-color 0.3s ease',
-            display: isMobile ? 'block' : 'none'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = 'rgba(255,255,255,0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = 'transparent';
-          }}
-        >
-          {isMenuOpen ? '✕' : '☰'}
-        </button>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      {isMenuOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '64px',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          zIndex: 999
-        }} onClick={closeMenu}>
-          <div style={{
-            backgroundColor: '#4a90e2',
-            padding: '20px',
-            borderBottom: '1px solid rgba(255,255,255,0.1)'
-          }} onClick={(e) => e.stopPropagation()}>
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
+      {/* Navigation Items */}
+      <List sx={{ flexGrow: 1, py: 1 }}>
+        {navItems.map((item) => {
+          const IconComponent = item.icon;
+          const active = isActive(item.path);
+          return (
+            <ListItem key={item.path} disablePadding sx={{ px: 1, mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
                 to={item.path}
-                style={{
-                  color: 'white',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '16px 20px',
-                  borderRadius: '8px',
-                  margin: '8px 0',
-                  fontSize: '18px',
-                  fontWeight: '500',
-                  backgroundColor: isActive(item.path) ? 'rgba(255,255,255,0.2)' : 'transparent',
-                  border: isActive(item.path) ? '2px solid rgba(255,255,255,0.3)' : '2px solid transparent',
-                  transition: 'all 0.3s ease'
-                }}
-                onClick={closeMenu}
-                onTouchStart={(e) => {
-                  if (!isActive(item.path)) {
-                    e.target.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                  }
-                }}
-                onTouchEnd={(e) => {
-                  if (!isActive(item.path)) {
-                    e.target.style.backgroundColor = 'transparent';
-                  }
+                selected={active}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.5,
+                  px: 2,
+                  '&.Mui-selected': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    },
+                  },
+                  '&:hover': {
+                    backgroundColor: active ? 'primary.dark' : 'grey.100',
+                  },
                 }}
               >
-                <span style={{ fontSize: '20px' }}>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+                <ListItemIcon sx={{
+                  color: active ? 'white' : 'primary.main',
+                  minWidth: 48
+                }}>
+                  <IconComponent sx={{ fontSize: 24 }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    fontWeight: active ? 'bold' : 'medium',
+                    fontSize: '0.95rem'
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+    </Box>
+  );
+
+  return (
+    <>
+      {/* Top AppBar for mobile only */}
+      {isMobile && (
+        <AppBar
+          position="fixed"
+          sx={{
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            backgroundColor: 'primary.main'
+          }}
+        >
+          <Toolbar>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={onToggle}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+              My Meal Planner
+            </Typography>
+          </Toolbar>
+        </AppBar>
       )}
 
-    </nav>
+      {/* Sidebar Drawer */}
+      <Drawer
+        variant={isMobile ? "temporary" : "persistent"}
+        open={open}
+        onClose={onToggle}
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            borderRight: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper'
+          },
+        }}
+        ModalProps={{
+          keepMounted: true, // Better performance on mobile
+        }}
+      >
+        {drawer}
+      </Drawer>
+    </>
   );
 }
 
 export default Navigation;
+export { drawerWidth };
