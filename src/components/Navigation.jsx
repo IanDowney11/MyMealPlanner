@@ -34,6 +34,13 @@ function Navigation({ open, onToggle }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  const handleNavItemClick = () => {
+    // Close menu on mobile when navigation item is clicked
+    if (isMobile && open) {
+      onToggle();
+    }
+  };
+
   const navItems = [
     { path: '/', label: 'Home', icon: HomeIcon },
     { path: '/meals', label: 'Meals', icon: RestaurantIcon },
@@ -85,6 +92,7 @@ function Navigation({ open, onToggle }) {
                 component={Link}
                 to={item.path}
                 selected={active}
+                onClick={handleNavItemClick}
                 sx={{
                   borderRadius: 2,
                   py: 1.5,

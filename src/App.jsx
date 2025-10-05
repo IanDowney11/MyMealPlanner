@@ -14,8 +14,8 @@ import Admin from './pages/Admin'
 import Navigation, { drawerWidth } from './components/Navigation'
 
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile) // Start closed on mobile, open on desktop
 
   // Auto-close sidebar on mobile, auto-open on desktop
   useEffect(() => {

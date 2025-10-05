@@ -19,9 +19,14 @@ import {
   ArrowForward as ArrowForwardIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
+import { useDrag, useDrop } from 'react-dnd';
+import DragDropProvider from '../components/DragDropProvider';
+import MealAssignmentModal from '../components/MealAssignmentModal';
 import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/storage';
 
-function MealPlanner() {
+const MEAL_TYPE = 'meal';
+
+function MealPlannerContent() {
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -30,6 +35,10 @@ function MealPlanner() {
   const [weeklyPlan, setWeeklyPlan] = useState({});
   const [currentWeekStart, setCurrentWeekStart] = useState(null);
   const [selectedWeekOffset, setSelectedWeekOffset] = useState(0);
+
+  // Mobile modal state
+  const [mobileModalOpen, setMobileModalOpen] = useState(false);
+  const [selectedMealForModal, setSelectedMealForModal] = useState(null);
 
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
@@ -138,37 +147,33 @@ function MealPlanner() {
     }
   };
 
-  const handleDragStart = (e, meal) => {
-    setDraggedMeal(meal);
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  const handleMealAssignment = async (date, meal) => {
+    try {
+      const dateStr = formatDate(date);
+      const savedPlan = await saveMealPlan(dateStr, meal);
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+      // Update weekly plan with the updated meal data and fromFreezer info
+      setWeeklyPlan(prev => ({
+        ...prev,
+        [dateStr]: savedPlan
+      }));
 
-  const handleDrop = async (e, date) => {
-    e.preventDefault();
-    if (draggedMeal) {
-      try {
-        const dateStr = formatDate(date);
-        const savedPlan = await saveMealPlan(dateStr, draggedMeal);
-
-        // Update weekly plan with the updated meal data and fromFreezer info
-        setWeeklyPlan(prev => ({
-          ...prev,
-          [dateStr]: savedPlan
-        }));
-
-        // Reload meals to update freezer counts in sidebar
-        await loadMeals();
-        setDraggedMeal(null);
-      } catch (error) {
-        console.error('Error saving meal plan:', error);
-        alert('Error saving meal plan. Please try again.');
-      }
+      // Reload meals to update freezer counts in sidebar
+      await loadMeals();
+    } catch (error) {
+      console.error('Error saving meal plan:', error);
+      alert('Error saving meal plan. Please try again.');
     }
+  };
+
+  const handleMobileModalOpen = (meal) => {
+    setSelectedMealForModal(meal);
+    setMobileModalOpen(true);
+  };
+
+  const handleMobileModalClose = () => {
+    setMobileModalOpen(false);
+    setSelectedMealForModal(null);
   };
 
   const removeMealFromDay = async (date) => {
@@ -220,102 +225,104 @@ function MealPlanner() {
     }
   };
 
-  const renderMealCard = (data, isInSidebar = true) => {
-    // Handle both meal objects (sidebar) and meal plan objects (calendar)
-    const meal = data.meal || data;
-    const isFromFreezer = data.fromFreezer || false;
-    const isMealPlan = !isInSidebar && data.meal; // Calendar display
+  const DraggableMealCard = ({ meal }) => {
+    const [{ isDragging }, drag] = useDrag({
+      type: MEAL_TYPE,
+      item: meal,
+      collect: (monitor) => ({
+        isDragging: monitor.isDragging(),
+      }),
+    });
 
     return (
       <Card
-        key={meal.id}
-        draggable={isInSidebar}
-        onDragStart={(e) => isInSidebar && handleDragStart(e, meal)}
+        ref={drag}
+        onClick={() => isMobile && handleMobileModalOpen(meal)}
         sx={{
           mb: 1.5,
-          cursor: isInSidebar ? 'grab' : 'default',
+          cursor: isMobile ? 'pointer' : 'grab',
           border: '2px solid transparent',
           transition: 'all 0.3s ease',
           userSelect: 'none',
-          '&:hover': isInSidebar ? {
+          opacity: isDragging ? 0.5 : 1,
+          '&:hover': {
             transform: 'translateY(-2px)',
             boxShadow: 2
-          } : {}
+          }
         }}
       >
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {meal.image ? (
-              <Avatar
-                src={meal.image}
-                alt={meal.title}
-                sx={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 1
-                }}
-                variant="rounded"
-              />
-            ) : (
-              <Avatar
-                sx={{
-                  width: 50,
-                  height: 50,
-                  bgcolor: 'grey.100',
-                  borderRadius: 1,
-                  fontSize: '20px'
-                }}
-                variant="rounded"
-              >
-                🥘
-              </Avatar>
-            )}
+        {renderMealCardContent(meal, true)}
+      </Card>
+    );
+  };
 
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontWeight: 'bold',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  mb: 0.5
-                }}
-              >
-                {meal.title}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                <Rating
-                  value={meal.rating || 0}
-                  readOnly
-                  size="small"
-                  precision={1}
-                />
-                {isInSidebar ? (
-                  // Sidebar: show freezer portions count
-                  meal.freezerPortions > 0 && (
-                    <Chip
-                      label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} frozen`}
-                      color="success"
-                      size="small"
-                      sx={{
-                        fontSize: '11px',
-                        height: 20,
-                        maxWidth: '100%',
-                        '& .MuiChip-label': {
-                          px: 1,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }
-                      }}
-                    />
-                  )
-                ) : (
-                  // Calendar: show freezer vs fresh indicator
+  const StaticMealCard = ({ data }) => {
+    const meal = data.meal || data;
+    const isFromFreezer = data.fromFreezer || false;
+
+    return (
+      <Card sx={{ mb: 1.5 }}>
+        {renderMealCardContent(meal, false, isFromFreezer)}
+      </Card>
+    );
+  };
+
+  const renderMealCardContent = (meal, isInSidebar = true, isFromFreezer = false) => {
+    return (
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {meal.image ? (
+            <Avatar
+              src={meal.image}
+              alt={meal.title}
+              sx={{
+                width: 50,
+                height: 50,
+                borderRadius: 1
+              }}
+              variant="rounded"
+            />
+          ) : (
+            <Avatar
+              sx={{
+                width: 50,
+                height: 50,
+                bgcolor: 'grey.100',
+                borderRadius: 1,
+                fontSize: '20px'
+              }}
+              variant="rounded"
+            >
+              🥘
+            </Avatar>
+          )}
+
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontWeight: 'bold',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                mb: 0.5
+              }}
+            >
+              {meal.title}
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <Rating
+                value={meal.rating || 0}
+                readOnly
+                size="small"
+                precision={1}
+              />
+              {isInSidebar ? (
+                // Sidebar: show freezer portions count
+                meal.freezerPortions > 0 && (
                   <Chip
-                    label={isFromFreezer ? '🧊 From Freezer' : '🔥 Cook Fresh'}
-                    color={isFromFreezer ? 'info' : 'warning'}
+                    label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} frozen`}
+                    color="success"
                     size="small"
                     sx={{
                       fontSize: '11px',
@@ -329,43 +336,61 @@ function MealPlanner() {
                       }
                     }}
                   />
-                )}
-              </Box>
+                )
+              ) : (
+                // Calendar: show freezer vs fresh indicator
+                <Chip
+                  label={isFromFreezer ? '🧊 From Freezer' : '🔥 Cook Fresh'}
+                  color={isFromFreezer ? 'info' : 'warning'}
+                  size="small"
+                  sx={{
+                    fontSize: '11px',
+                    height: 20,
+                    maxWidth: '100%',
+                    '& .MuiChip-label': {
+                      px: 1,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }
+                  }}
+                />
+              )}
             </Box>
           </Box>
-        </CardContent>
-      </Card>
+        </Box>
+      </CardContent>
     );
   };
 
-  const renderCalendarDay = (date) => {
+  const DroppableCalendarDay = ({ date }) => {
     const dateStr = formatDate(date);
     const plannedMeal = weeklyPlan[dateStr];
 
+    const [{ isOver }, drop] = useDrop({
+      accept: MEAL_TYPE,
+      drop: (meal) => handleMealAssignment(date, meal),
+      collect: (monitor) => ({
+        isOver: monitor.isOver(),
+      }),
+    });
+
     return (
       <Paper
+        ref={drop}
         key={dateStr}
         elevation={1}
         sx={{
           p: 2,
           minHeight: 200,
           border: '2px dashed',
-          borderColor: 'divider',
+          borderColor: isOver ? 'primary.main' : 'divider',
+          backgroundColor: isOver ? 'action.hover' : 'background.paper',
           transition: 'all 0.3s ease',
           '&:hover': {
             borderColor: 'primary.main',
             bgcolor: 'action.hover'
           }
-        }}
-        onDragOver={handleDragOver}
-        onDrop={(e) => handleDrop(e, date)}
-        onDragEnter={(e) => {
-          e.currentTarget.style.borderColor = '#4a90e2';
-          e.currentTarget.style.backgroundColor = '#f8f9ff';
-        }}
-        onDragLeave={(e) => {
-          e.currentTarget.style.borderColor = '';
-          e.currentTarget.style.backgroundColor = '';
         }}
       >
         <Typography
@@ -392,7 +417,7 @@ function MealPlanner() {
 
         {plannedMeal ? (
           <Box sx={{ position: 'relative' }}>
-            {renderMealCard(plannedMeal, false)}
+            <StaticMealCard data={plannedMeal} />
             <IconButton
               onClick={() => removeMealFromDay(date)}
               color="error"
@@ -422,7 +447,7 @@ function MealPlanner() {
             }}
           >
             <Typography variant="body2" color="text.disabled">
-              Drag a meal here
+              {isMobile ? 'Tap a meal to schedule' : 'Drag a meal here'}
             </Typography>
           </Box>
         )}
@@ -526,9 +551,11 @@ function MealPlanner() {
                   fontStyle: 'italic'
                 }}
               >
-                Drag meals to plan your week
+                {isMobile ? 'Tap meals to schedule them' : 'Drag meals to plan your week'}
               </Typography>
-              {meals.map(meal => renderMealCard(meal, true))}
+              {meals.map(meal => (
+                <DraggableMealCard key={meal.id} meal={meal} />
+              ))}
             </Box>
           )}
         </Box>
@@ -631,11 +658,32 @@ function MealPlanner() {
             maxWidth: 1400,
             margin: '0 auto'
           }}>
-            {weekDates.map(date => renderCalendarDay(date))}
+            {weekDates.map(date => (
+              <DroppableCalendarDay key={formatDate(date)} date={date} />
+            ))}
           </Box>
         </Box>
       </Box>
+
+      {/* Mobile Modal */}
+      <MealAssignmentModal
+        open={mobileModalOpen}
+        onClose={handleMobileModalClose}
+        meal={selectedMealForModal}
+        weekDates={weekDates}
+        weeklyPlan={weeklyPlan}
+        onAssignMeal={handleMealAssignment}
+        formatDisplayDate={formatDisplayDate}
+      />
     </Box>
+  );
+}
+
+function MealPlanner() {
+  return (
+    <DragDropProvider>
+      <MealPlannerContent />
+    </DragDropProvider>
   );
 }
 
