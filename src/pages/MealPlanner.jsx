@@ -589,9 +589,6 @@ function MealPlannerContent() {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant={isMobile ? "h5" : "h4"} color="text.primary">
-              Weekly Meal Planner
-            </Typography>
           </Box>
 
           {/* Week Navigation */}

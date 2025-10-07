@@ -56,28 +56,22 @@ function Navigation({ open, onToggle }) {
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Sidebar Header */}
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        p: 2,
-        minHeight: 64,
-        backgroundColor: 'primary.main',
-        color: 'white'
-      }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          My Meal Planner
-        </Typography>
-        {!isMobile && (
+      {/* Sidebar Header - Removed title, kept close button for desktop */}
+      {!isMobile && (
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          p: 1,
+          minHeight: 48
+        }}>
           <IconButton
             onClick={onToggle}
-            sx={{ color: 'white' }}
+            sx={{ color: 'primary.main' }}
           >
             <ChevronLeftIcon />
           </IconButton>
-        )}
-      </Box>
+        </Box>
+      )}
 
       <Divider />
 
@@ -132,31 +126,6 @@ function Navigation({ open, onToggle }) {
 
   return (
     <>
-      {/* Top AppBar for mobile only */}
-      {isMobile && (
-        <AppBar
-          position="fixed"
-          sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            backgroundColor: 'primary.main'
-          }}
-        >
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={onToggle}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
-            <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-              My Meal Planner
-            </Typography>
-          </Toolbar>
-        </AppBar>
-      )}
 
       {/* Sidebar Drawer */}
       <Drawer

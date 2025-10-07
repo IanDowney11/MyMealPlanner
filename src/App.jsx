@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
-import { CssBaseline, Box, useMediaQuery, Toolbar, IconButton } from '@mui/material'
+import { CssBaseline, Box, useMediaQuery, IconButton } from '@mui/material'
 import { Menu as MenuIcon } from '@mui/icons-material'
 import theme from './theme/theme'
 
@@ -51,11 +51,9 @@ function App() {
               width: isMobile ? '100%' : (sidebarOpen ? `calc(100% - ${drawerWidth}px)` : '100%'),
             }}
           >
-            {/* Spacer for mobile top bar */}
-            {isMobile && <Toolbar />}
 
-            {/* Desktop menu button when sidebar is closed */}
-            {!isMobile && !sidebarOpen && (
+            {/* Menu button when sidebar is closed */}
+            {!sidebarOpen && (
               <Box
                 sx={{
                   position: 'fixed',
