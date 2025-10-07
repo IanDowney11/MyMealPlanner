@@ -7,6 +7,7 @@ import theme from '../theme/theme';
 // Import your page components
 import Home from '../pages/Home';
 import Meals from '../pages/Meals';
+import Snacks from '../pages/Snacks';
 import MealPlanner from '../pages/MealPlanner';
 import ShoppingList from '../pages/ShoppingList';
 import Admin from '../pages/Admin';
@@ -84,6 +85,11 @@ function ProtectedApp() {
             <Route path="/meals" element={
               <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
                 <Meals />
+              </Box>
+            } />
+            <Route path="/snacks" element={
+              <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+                <Snacks />
               </Box>
             } />
             <Route path="/meal-planner" element={<MealPlanner />} />

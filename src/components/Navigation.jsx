@@ -21,6 +21,7 @@ import {
   Menu as MenuIcon,
   Home as HomeIcon,
   Restaurant as RestaurantIcon,
+  LocalDining as SnackIcon,
   CalendarMonth as CalendarIcon,
   ShoppingCart as ShoppingCartIcon,
   Settings as SettingsIcon,
@@ -98,6 +99,7 @@ function Navigation({ open, onToggle }) {
   const navItems = [
     { path: '/', label: 'Home', icon: HomeIcon },
     { path: '/meals', label: 'Meals', icon: RestaurantIcon },
+    { path: '/snacks', label: 'Snacks', icon: SnackIcon },
     { path: '/meal-planner', label: 'Meal Planner', icon: CalendarIcon },
     { path: '/shopping-list', label: 'Shopping List', icon: ShoppingCartIcon },
     { path: '/admin', label: 'Admin', icon: SettingsIcon }

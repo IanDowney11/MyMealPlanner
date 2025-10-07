@@ -86,12 +86,6 @@ function LandingPage() {
             The ultimate tool for planning your weekly meals, managing recipes, and staying organized in the kitchen.
           </Typography>
 
-          <Stack direction="row" spacing={1} justifyContent="center" sx={{ mb: 4 }}>
-            <Chip label="🍽️ Meal Planning" variant="outlined" sx={{ color: 'white', borderColor: 'white' }} />
-            <Chip label="📱 PWA Ready" variant="outlined" sx={{ color: 'white', borderColor: 'white' }} />
-            <Chip label="☁️ Cloud Sync" variant="outlined" sx={{ color: 'white', borderColor: 'white' }} />
-            <Chip label="🔒 Secure" variant="outlined" sx={{ color: 'white', borderColor: 'white' }} />
-          </Stack>
 
           <Button
             variant="contained"
@@ -109,20 +103,12 @@ function LandingPage() {
               }
             }}
           >
-            Get Started - Sign Up Free
+            Get Started - Sign Up / Sign In
           </Button>
         </Box>
 
         {/* Features Grid */}
         <Box sx={{ mb: 8 }}>
-          <Typography variant="h3" component="h2" sx={{
-            textAlign: 'center',
-            mb: 6,
-            fontWeight: 'bold',
-            color: 'white'
-          }}>
-            Everything You Need
-          </Typography>
 
           <Box sx={{
             display: 'grid',
@@ -193,14 +179,6 @@ function LandingPage() {
           </Button>
         </Paper>
 
-        {/* Footer */}
-        <Typography variant="body2" sx={{
-          textAlign: 'center',
-          color: 'grey.400',
-          mt: 4
-        }}>
-          Built with ❤️ for meal planning enthusiasts everywhere
-        </Typography>
       </Container>
 
       <AuthModal

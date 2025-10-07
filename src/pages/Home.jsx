@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Typography, Card, CardContent, CardMedia, Box, Chip, CircularProgress, Rating } from '@mui/material';
-import { Add as AddIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
-import MealForm from '../components/MealForm';
-import { saveMeal, initDB, getMealPlan } from '../services/mealsService';
+import { CalendarMonth as CalendarIcon, Casino as RandomIcon } from '@mui/icons-material';
+import { initDB, getMealPlan } from '../services/mealsService';
+import { getSnacks } from '../services/snacksService';
 
 function Home() {
-  const [rating, setRating] = useState(0);
-  const [hoveredStar, setHoveredStar] = useState(0);
-  const [showMealForm, setShowMealForm] = useState(false);
   const [todaysPlannedMeal, setTodaysPlannedMeal] = useState(null);
   const [loadingPlannedMeal, setLoadingPlannedMeal] = useState(true);
+  const [randomSnack, setRandomSnack] = useState(null);
+  const [loadingRandomSnack, setLoadingRandomSnack] = useState(false);
 
   useEffect(() => {
     loadTodaysPlannedMeal();
@@ -31,27 +30,25 @@ function Home() {
     }
   };
 
-  const handleStarClick = (starIndex) => {
-    setRating(starIndex);
-  };
-
-  const handleStarHover = (starIndex) => {
-    setHoveredStar(starIndex);
-  };
-
-  const handleStarLeave = () => {
-    setHoveredStar(0);
-  };
-
-  const handleSaveMeal = async (mealData) => {
+  const handleRandomSnack = async () => {
     try {
-      await initDB();
-      await saveMeal(mealData);
-      setShowMealForm(false);
-      alert('Meal saved successfully! You can view it in the Meals section.');
+      setLoadingRandomSnack(true);
+      const snacks = await getSnacks();
+
+      if (snacks.length === 0) {
+        alert('No snacks available! Add some snacks first.');
+        return;
+      }
+
+      // Get a random snack
+      const randomIndex = Math.floor(Math.random() * snacks.length);
+      const selectedSnack = snacks[randomIndex];
+      setRandomSnack(selectedSnack);
     } catch (error) {
-      console.error('Error saving meal:', error);
-      alert('Error saving meal. Please try again.');
+      console.error('Error getting random snack:', error);
+      alert('Error getting random snack. Please try again.');
+    } finally {
+      setLoadingRandomSnack(false);
     }
   };
 
@@ -218,32 +215,124 @@ function Home() {
         </CardContent>
       </Card>
 
-      <Box sx={{ textAlign: 'center', mt: 4, mb: 3 }}>
-        <Button
-          onClick={() => setShowMealForm(true)}
-          variant="contained"
-          color="secondary"
-          startIcon={<AddIcon />}
-          size="large"
+      {/* Random Snack Section */}
+      <Card sx={{ mt: 4, overflow: 'hidden' }}>
+        <Box
           sx={{
-            py: 2,
-            px: 4,
-            fontSize: '1.125rem',
-            fontWeight: 'bold'
+            bgcolor: 'secondary.main',
+            color: 'white',
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
           }}
         >
-          Quick Add New Meal
-        </Button>
-      </Box>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
+            Random Snack Suggestion
+          </Typography>
+          <Button
+            onClick={handleRandomSnack}
+            variant="contained"
+            color="inherit"
+            startIcon={<RandomIcon />}
+            disabled={loadingRandomSnack}
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.2)',
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.3)'
+              }
+            }}
+          >
+            {loadingRandomSnack ? 'Getting...' : 'Get Random Snack'}
+          </Button>
+        </Box>
 
-      {/* Meal Form Modal */}
-      {showMealForm && (
-        <MealForm
-          meal={null}
-          onSave={handleSaveMeal}
-          onCancel={() => setShowMealForm(false)}
-        />
-      )}
+        <CardContent>
+          {randomSnack ? (
+            <>
+              {randomSnack.image ? (
+                <CardMedia
+                  component="img"
+                  height="150"
+                  image={randomSnack.image}
+                  alt={randomSnack.title}
+                  sx={{ borderRadius: 1, mb: 2 }}
+                />
+              ) : (
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 150,
+                    bgcolor: 'grey.100',
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '48px',
+                    mb: 2
+                  }}
+                >
+                  🍿
+                </Box>
+              )}
+
+              <Typography
+                variant="h5"
+                component="h3"
+                sx={{ mb: 1, fontWeight: 'bold' }}
+              >
+                {randomSnack.title}
+              </Typography>
+
+              {randomSnack.description && (
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{ mb: 2, lineHeight: 1.6 }}
+                >
+                  {randomSnack.description}
+                </Typography>
+              )}
+
+              <Box
+                sx={{
+                  borderTop: 1,
+                  borderColor: 'divider',
+                  pt: 2,
+                  textAlign: 'center'
+                }}
+              >
+                <Button
+                  component={Link}
+                  to="/snacks"
+                  variant="outlined"
+                  size="small"
+                >
+                  View All Snacks
+                </Button>
+              </Box>
+            </>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 4, px: 3 }}>
+              <Typography sx={{ fontSize: '48px', mb: 2 }}>🍿</Typography>
+              <Typography
+                variant="h6"
+                component="h3"
+                sx={{ mb: 1, fontWeight: 'bold' }}
+              >
+                Need a snack idea?
+              </Typography>
+              <Typography
+                variant="body1"
+                color="text.secondary"
+                sx={{ mb: 3, lineHeight: 1.6 }}
+              >
+                Click the button above to get a random snack suggestion from your collection!
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
 }
