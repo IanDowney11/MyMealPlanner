@@ -13,7 +13,15 @@ export async function getMeals() {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    // Convert snake_case to camelCase for frontend consistency
+    const meals = (data || []).map(meal => ({
+      ...meal,
+      freezerPortions: meal.freezer_portions || 0
+    }));
+
+    console.log('Loaded meals with freezer portions:', meals);
+    return meals;
   } catch (error) {
     console.error('Error fetching meals:', error);
     throw error;
@@ -22,24 +30,40 @@ export async function getMeals() {
 
 export async function saveMeal(meal) {
   try {
+    console.log('Attempting to save meal:', meal);
+
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    if (!user) {
+      console.error('No authenticated user found');
+      throw new Error('Not authenticated');
+    }
+
+    console.log('User authenticated:', user.id);
 
     const mealData = {
-      ...meal,
       user_id: user.id,
-      updated_at: new Date().toISOString(),
-      // Ensure numeric fields are properly typed
+      title: meal.title,
+      description: meal.description || null,
+      image: meal.image || null,
       rating: meal.rating ? Number(meal.rating) : null,
-      freezer_portions: meal.freezerPortions ? Number(meal.freezerPortions) : 0
+      freezer_portions: Number(meal.freezerPortions || 0),
+      updated_at: new Date().toISOString()
     };
 
-    // Remove the camelCase field since we're using snake_case in DB
-    delete mealData.freezerPortions;
+    console.log('Original meal freezerPortions:', meal.freezerPortions);
+    console.log('Converted freezer_portions for DB:', mealData.freezer_portions);
+
+    // Only include ID for updates, not for new inserts
+    if (meal.id) {
+      mealData.id = meal.id;
+    }
+
+    console.log('Processed meal data for DB:', mealData);
 
     let result;
     if (meal.id) {
       // Update existing meal
+      console.log('Updating existing meal with ID:', meal.id);
       const { data, error } = await supabase
         .from('meals')
         .update(mealData)
@@ -48,10 +72,14 @@ export async function saveMeal(meal) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
       result = data;
     } else {
       // Create new meal
+      console.log('Creating new meal');
       mealData.created_at = new Date().toISOString();
       const { data, error } = await supabase
         .from('meals')
@@ -59,9 +87,14 @@ export async function saveMeal(meal) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw error;
+      }
       result = data;
     }
+
+    console.log('Supabase operation successful:', result);
 
     // Convert snake_case back to camelCase for frontend consistency
     if (result) {
@@ -317,8 +350,56 @@ function getMonday(date) {
   return new Date(d.setDate(diff));
 }
 
-// Database initialization (no-op for Supabase)
+// Database initialization and diagnostics
 export async function initDB() {
-  // No-op for Supabase - tables are created via SQL
+  // Test Supabase connection and tables
+  try {
+    console.log('Testing Supabase connection...');
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.log('No authenticated user');
+      return Promise.resolve();
+    }
+
+    console.log('User authenticated:', user.email);
+
+    // Test if tables exist by querying them
+    try {
+      const { data: meals, error: mealsError } = await supabase
+        .from('meals')
+        .select('count')
+        .limit(1);
+
+      if (mealsError) {
+        console.error('Meals table error:', mealsError);
+        console.log('❌ Please create the meals table in Supabase using the provided SQL');
+      } else {
+        console.log('✅ Meals table exists');
+      }
+    } catch (e) {
+      console.error('Error checking meals table:', e);
+    }
+
+    try {
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('count')
+        .limit(1);
+
+      if (eventsError) {
+        console.error('Events table error:', eventsError);
+        console.log('❌ Please create the events table in Supabase using the provided SQL');
+      } else {
+        console.log('✅ Events table exists');
+      }
+    } catch (e) {
+      console.error('Error checking events table:', e);
+    }
+
+  } catch (error) {
+    console.error('Supabase connection test failed:', error);
+  }
+
   return Promise.resolve();
 }
