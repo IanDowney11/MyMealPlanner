@@ -1,7 +1,8 @@
 const DB_NAME = 'MealPlannerDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const MEALS_STORE = 'meals';
 const PLANS_STORE = 'mealPlans';
+const EVENTS_STORE = 'events';
 
 let db = null;
 
@@ -27,6 +28,12 @@ export async function initDB() {
       if (!database.objectStoreNames.contains(PLANS_STORE)) {
         const plansStore = database.createObjectStore(PLANS_STORE, { keyPath: 'date' });
         plansStore.createIndex('week', 'weekKey', { unique: false });
+      }
+
+      if (!database.objectStoreNames.contains(EVENTS_STORE)) {
+        const eventsStore = database.createObjectStore(EVENTS_STORE, { keyPath: 'id' });
+        eventsStore.createIndex('title', 'title', { unique: false });
+        eventsStore.createIndex('type', 'type', { unique: false });
       }
     };
   });
@@ -206,6 +213,86 @@ function getMonday(date) {
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
+}
+
+// Event functions
+export async function getEvents() {
+  if (!db) await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([EVENTS_STORE], 'readonly');
+    const store = transaction.objectStore(EVENTS_STORE);
+    const request = store.getAll();
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+export async function saveEvent(event) {
+  if (!db) await initDB();
+
+  const eventToSave = {
+    ...event,
+    id: event.id || generateId(),
+    createdAt: event.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([EVENTS_STORE], 'readwrite');
+    const store = transaction.objectStore(EVENTS_STORE);
+    const request = store.put(eventToSave);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(eventToSave);
+  });
+}
+
+export async function deleteEvent(id) {
+  if (!db) await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([EVENTS_STORE], 'readwrite');
+    const store = transaction.objectStore(EVENTS_STORE);
+    const request = store.delete(id);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(true);
+  });
+}
+
+export async function getEventById(id) {
+  if (!db) await initDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([EVENTS_STORE], 'readonly');
+    const store = transaction.objectStore(EVENTS_STORE);
+    const request = store.get(id);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+// Get events for a specific date
+export async function getEventsForDate(date) {
+  if (!db) await initDB();
+
+  const events = await getEvents();
+  const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+  const targetDate = new Date(dateStr);
+
+  return events.filter(event => {
+    if (event.type === 'one-time') {
+      return event.date === dateStr;
+    } else if (event.type === 'weekly') {
+      // Check if it's the same day of the week
+      const eventDate = new Date(event.date);
+      return eventDate.getDay() === targetDate.getDay();
+    }
+    return false;
+  });
 }
 
 function generateId() {

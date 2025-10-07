@@ -11,18 +11,31 @@ import {
   Chip,
   Avatar,
   Divider,
-  Rating
+  Rating,
+  Badge,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   ArrowBack as ArrowBackIcon,
   ArrowForward as ArrowForwardIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Add as AddIcon,
+  Event as EventIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
 import MealAssignmentModal from '../components/MealAssignmentModal';
 import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/storage';
+import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsService';
+import EventModal from '../components/EventModal';
 
 const MEAL_TYPE = 'meal';
 
@@ -39,6 +52,14 @@ function MealPlannerContent() {
   // Mobile modal state
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
   const [selectedMealForModal, setSelectedMealForModal] = useState(null);
+
+  // Events state
+  const [dayEvents, setDayEvents] = useState({});
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedDateForEvent, setSelectedDateForEvent] = useState(null);
+  const [eventMenuAnchor, setEventMenuAnchor] = useState(null);
+  const [eventMenuData, setEventMenuData] = useState(null);
 
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
@@ -96,6 +117,7 @@ function MealPlannerContent() {
   useEffect(() => {
     loadMeals();
     loadWeekPlan();
+    loadWeekEvents();
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
@@ -106,6 +128,7 @@ function MealPlannerContent() {
       const mondayStr = formatDate(weekDates[0]);
       setCurrentWeekStart(mondayStr);
       loadWeekPlan();
+      loadWeekEvents();
     }
   }, [selectedWeekOffset]);
 
@@ -144,6 +167,27 @@ function MealPlannerContent() {
       }
     } catch (error) {
       console.error('Error loading week plan:', error);
+    }
+  };
+
+  const loadWeekEvents = async () => {
+    try {
+      if (weekDates.length > 0) {
+        const eventsMap = {};
+
+        // Load events for each day of the week
+        for (const date of weekDates) {
+          const dateStr = formatDate(date);
+          const events = await getEventsForDate(dateStr);
+          if (events.length > 0) {
+            eventsMap[dateStr] = events;
+          }
+        }
+
+        setDayEvents(eventsMap);
+      }
+    } catch (error) {
+      console.error('Error loading week events:', error);
     }
   };
 
@@ -209,6 +253,51 @@ function MealPlannerContent() {
 
   const goToCurrentWeek = () => {
     setSelectedWeekOffset(0);
+  };
+
+  // Event handling functions
+  const handleAddEvent = (date) => {
+    setSelectedDateForEvent(date);
+    setSelectedEvent(null);
+    setEventModalOpen(true);
+  };
+
+  const handleEditEvent = (event) => {
+    setSelectedEvent(event);
+    setSelectedDateForEvent(null);
+    setEventModalOpen(true);
+    setEventMenuAnchor(null);
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    try {
+      await deleteEvent(eventId);
+      await loadWeekEvents();
+      setEventMenuAnchor(null);
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      alert('Error deleting event. Please try again.');
+    }
+  };
+
+  const handleSaveEvent = async (eventData) => {
+    try {
+      await saveEvent(eventData);
+      await loadWeekEvents();
+    } catch (error) {
+      console.error('Error saving event:', error);
+      alert('Error saving event. Please try again.');
+    }
+  };
+
+  const handleEventMenuOpen = (event, eventData) => {
+    setEventMenuAnchor(event.currentTarget);
+    setEventMenuData(eventData);
+  };
+
+  const handleEventMenuClose = () => {
+    setEventMenuAnchor(null);
+    setEventMenuData(null);
   };
 
   const getWeekDisplayText = () => {
@@ -366,6 +455,7 @@ function MealPlannerContent() {
   const DroppableCalendarDay = ({ date }) => {
     const dateStr = formatDate(date);
     const plannedMeal = weeklyPlan[dateStr];
+    const events = dayEvents[dateStr] || [];
 
     const [{ isOver }, drop] = useDrop({
       accept: MEAL_TYPE,
@@ -393,19 +483,83 @@ function MealPlannerContent() {
           }
         }}
       >
-        <Typography
-          variant="h6"
-          sx={{
-            textAlign: 'center',
-            mb: 2,
-            pb: 1,
-            borderBottom: 1,
-            borderColor: 'divider',
-            lineHeight: 1.3
-          }}
-        >
-          {formatDisplayDate(date)}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              flex: 1,
+              textAlign: 'center',
+              lineHeight: 1.3
+            }}
+          >
+            {formatDisplayDate(date)}
+          </Typography>
+
+          <Tooltip title="Add Event">
+            <IconButton
+              size="small"
+              onClick={() => handleAddEvent(date)}
+              sx={{
+                color: 'primary.main',
+                '&:hover': { bgcolor: 'primary.main', color: 'white' }
+              }}
+            >
+              <AddIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+
+        {/* Events Section */}
+        {events.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            {events.map((event, index) => (
+              <Badge
+                key={event.id}
+                badgeContent={
+                  <Tooltip title="Event Options">
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleEventMenuOpen(e, event)}
+                      sx={{
+                        color: 'white',
+                        width: 16,
+                        height: 16,
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                      }}
+                    >
+                      <MoreVertIcon fontSize="inherit" />
+                    </IconButton>
+                  </Tooltip>
+                }
+                sx={{
+                  display: 'block',
+                  mb: index < events.length - 1 ? 0.5 : 0,
+                  '& .MuiBadge-badge': {
+                    right: -6,
+                    top: -6,
+                    bgcolor: 'secondary.main'
+                  }
+                }}
+              >
+                <Chip
+                  icon={<EventIcon />}
+                  label={event.title}
+                  size="small"
+                  color="secondary"
+                  sx={{
+                    maxWidth: '100%',
+                    '& .MuiChip-label': {
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }
+                  }}
+                />
+              </Badge>
+            ))}
+            <Divider sx={{ mt: 1, mb: 1.5 }} />
+          </Box>
+        )}
 
         <Typography
           variant="body2"
@@ -442,7 +596,7 @@ function MealPlannerContent() {
               textAlign: 'center',
               color: 'text.disabled',
               fontStyle: 'italic',
-              py: 5,
+              py: 3,
               px: 2.5
             }}
           >
@@ -672,6 +826,35 @@ function MealPlannerContent() {
         onAssignMeal={handleMealAssignment}
         formatDisplayDate={formatDisplayDate}
       />
+
+      {/* Event Modal */}
+      <EventModal
+        open={eventModalOpen}
+        onClose={() => setEventModalOpen(false)}
+        onSave={handleSaveEvent}
+        event={selectedEvent}
+        selectedDate={selectedDateForEvent}
+      />
+
+      {/* Event Context Menu */}
+      <Menu
+        anchorEl={eventMenuAnchor}
+        open={Boolean(eventMenuAnchor)}
+        onClose={handleEventMenuClose}
+      >
+        <MenuItem onClick={() => handleEditEvent(eventMenuData)}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit Event</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => handleDeleteEvent(eventMenuData?.id)}>
+          <ListItemIcon>
+            <DeleteIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Delete Event</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 }
