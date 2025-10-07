@@ -12,6 +12,7 @@ import MealPlanner from './pages/MealPlanner'
 import ShoppingList from './pages/ShoppingList'
 import Admin from './pages/Admin'
 import Navigation, { drawerWidth } from './components/Navigation'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
 
 function App() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -103,6 +104,7 @@ function App() {
             </Routes>
           </Box>
         </Box>
+        <PWAInstallPrompt />
       </Router>
     </ThemeProvider>
   )
