@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input } from '@mui/material';
 import { FileDownload as ExportIcon, FileUpload as ImportIcon } from '@mui/icons-material';
-import { getMeals, saveMeal, initDB } from '../services/storage';
+import { getMeals, saveMeal, initDB } from '../services/mealsService';
 
 function Admin() {
   const [meals, setMeals] = useState([]);

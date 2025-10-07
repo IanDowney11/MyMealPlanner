@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button, Typography, Card, CardContent, CardMedia, Box, Chip, CircularProgress, Rating } from '@mui/material';
 import { Add as AddIcon, CalendarMonth as CalendarIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
-import { saveMeal, initDB, getMealPlan } from '../services/storage';
+import { saveMeal, initDB, getMealPlan } from '../services/mealsService';
 
 function Home() {
   const [rating, setRating] = useState(0);

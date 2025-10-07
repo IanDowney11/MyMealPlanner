@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating } from '@mui/material';
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
-import { getMeals, saveMeal, deleteMeal, initDB } from '../services/storage';
+import { getMeals, saveMeal, deleteMeal, initDB } from '../services/mealsService';
 
 function Meals() {
   const [meals, setMeals] = useState([]);

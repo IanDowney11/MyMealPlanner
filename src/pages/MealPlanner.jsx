@@ -33,7 +33,7 @@ import {
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
 import MealAssignmentModal from '../components/MealAssignmentModal';
-import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/storage';
+import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/mealsService';
 import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsService';
 import EventModal from '../components/EventModal';
 
