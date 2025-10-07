@@ -28,6 +28,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   GetApp as InstallIcon
 } from '@mui/icons-material';
+import UserProfile from './UserProfile';
 
 const drawerWidth = 280;
 
@@ -175,9 +176,13 @@ function Navigation({ open, onToggle }) {
         })}
       </List>
 
-      {/* Install App Button */}
-      {showInstallButton && (
-        <Box sx={{ p: 2, mt: 'auto' }}>
+      {/* Bottom Section - User Profile and Install */}
+      <Box sx={{ mt: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* User Profile */}
+        <UserProfile />
+
+        {/* Install App Button */}
+        {showInstallButton && (
           <Button
             variant="outlined"
             fullWidth
@@ -194,8 +199,8 @@ function Navigation({ open, onToggle }) {
           >
             Install App
           </Button>
-        </Box>
-      )}
+        )}
+      </Box>
     </Box>
   );
 
