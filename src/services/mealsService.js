@@ -1,26 +1,59 @@
 import { supabase } from '../lib/supabase';
 
 // Meals CRUD operations
-export async function getMeals() {
+export async function getMeals(sortBy = 'created_at', sortOrder = 'desc') {
   try {
+    console.log('getMeals called with sortBy:', sortBy, 'sortOrder:', sortOrder);
+
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('Current user:', user?.id);
+
     if (!user) throw new Error('Not authenticated');
 
-    const { data, error } = await supabase
+    // Map frontend sort fields to database columns
+    const sortFieldMap = {
+      'created_at': 'created_at',
+      'title': 'title',
+      'rating': 'rating',
+      'lastEaten': 'last_eaten',
+      'eatenCount': 'eaten_count'
+    };
+
+    const dbSortField = sortFieldMap[sortBy] || 'created_at';
+    const ascending = sortOrder === 'asc';
+
+    console.log('Querying meals table with field:', dbSortField, 'ascending:', ascending);
+
+    let query = supabase
       .from('meals')
       .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      .eq('user_id', user.id);
 
-    if (error) throw error;
+    // For last_eaten, we need to handle null values properly
+    if (dbSortField === 'last_eaten') {
+      query = query.order('last_eaten', { ascending, nullsFirst: !ascending });
+    } else {
+      query = query.order(dbSortField, { ascending });
+    }
+
+    const { data, error } = await query;
+
+    console.log('Supabase query result:', { data, error });
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw error;
+    }
 
     // Convert snake_case to camelCase for frontend consistency
     const meals = (data || []).map(meal => ({
       ...meal,
-      freezerPortions: meal.freezer_portions || 0
+      freezerPortions: meal.freezer_portions || 0,
+      lastEaten: meal.last_eaten,
+      eatenCount: meal.eaten_count || 0
     }));
 
-    console.log('Loaded meals with freezer portions:', meals);
+    console.log('Loaded meals with tracking data:', meals.length, 'meals');
     return meals;
   } catch (error) {
     console.error('Error fetching meals:', error);
@@ -30,15 +63,12 @@ export async function getMeals() {
 
 export async function saveMeal(meal) {
   try {
-    console.log('Attempting to save meal:', meal);
+    console.log('saveMeal called with:', meal);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('No authenticated user found');
-      throw new Error('Not authenticated');
-    }
+    console.log('Current user for save:', user?.id);
 
-    console.log('User authenticated:', user.id);
+    if (!user) throw new Error('Not authenticated');
 
     const mealData = {
       user_id: user.id,
@@ -47,18 +77,16 @@ export async function saveMeal(meal) {
       image: meal.image || null,
       rating: meal.rating ? Number(meal.rating) : null,
       freezer_portions: Number(meal.freezerPortions || 0),
+      versions: meal.versions || [],
       updated_at: new Date().toISOString()
     };
 
-    console.log('Original meal freezerPortions:', meal.freezerPortions);
-    console.log('Converted freezer_portions for DB:', mealData.freezer_portions);
+    console.log('Meal data to save:', mealData);
 
     // Only include ID for updates, not for new inserts
     if (meal.id) {
       mealData.id = meal.id;
     }
-
-    console.log('Processed meal data for DB:', mealData);
 
     let result;
     if (meal.id) {
@@ -99,12 +127,58 @@ export async function saveMeal(meal) {
     // Convert snake_case back to camelCase for frontend consistency
     if (result) {
       result.freezerPortions = result.freezer_portions;
+      result.lastEaten = result.last_eaten;
+      result.eatenCount = result.eaten_count || 0;
       delete result.freezer_portions;
+      delete result.last_eaten;
+      delete result.eaten_count;
     }
 
     return result;
   } catch (error) {
     console.error('Error saving meal:', error);
+    throw error;
+  }
+}
+
+export async function markMealAsEaten(mealId) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    // Get current meal data to increment eaten count
+    const currentMeal = await getMealById(mealId);
+    if (!currentMeal) throw new Error('Meal not found');
+
+    const updateData = {
+      last_eaten: new Date().toISOString(),
+      eaten_count: (currentMeal.eatenCount || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('meals')
+      .update(updateData)
+      .eq('id', mealId)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Convert snake_case back to camelCase for frontend consistency
+    if (data) {
+      data.freezerPortions = data.freezer_portions;
+      data.lastEaten = data.last_eaten;
+      data.eatenCount = data.eaten_count || 0;
+      delete data.freezer_portions;
+      delete data.last_eaten;
+      delete data.eaten_count;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error marking meal as eaten:', error);
     throw error;
   }
 }
@@ -145,7 +219,11 @@ export async function getMealById(mealId) {
     // Convert snake_case to camelCase for frontend consistency
     if (data) {
       data.freezerPortions = data.freezer_portions;
+      data.lastEaten = data.last_eaten;
+      data.eatenCount = data.eaten_count || 0;
       delete data.freezer_portions;
+      delete data.last_eaten;
+      delete data.eaten_count;
     }
 
     return data;
@@ -164,6 +242,10 @@ export async function saveMealPlan(date, meal, useFromFreezer = null) {
     const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
     const weekKey = getWeekKey(dateStr);
 
+    // Check if this is a past date and automatically mark as eaten
+    const today = new Date().toISOString().split('T')[0];
+    const isPastDate = dateStr < today;
+
     // Determine if we should use from freezer
     let fromFreezer = false;
     let updatedMeal = { ...meal };
@@ -179,6 +261,13 @@ export async function saveMealPlan(date, meal, useFromFreezer = null) {
     if (fromFreezer && meal.freezerPortions > 0) {
       updatedMeal.freezerPortions = meal.freezerPortions - 1;
       await saveMeal(updatedMeal);
+    }
+
+    // If planning a meal for a past date, mark it as eaten
+    if (isPastDate) {
+      await markMealAsEaten(meal.id);
+      // Refresh meal data to get updated eaten count
+      updatedMeal = await getMealById(meal.id);
     }
 
     const mealPlanData = {
@@ -320,6 +409,40 @@ export async function deleteMealPlan(date) {
       await saveMeal(mealToUpdate);
     }
 
+    // Decrease eaten count for the meal
+    if (existingPlan && existingPlan.meal) {
+      const mealId = existingPlan.meal.id;
+
+      // Get current meal data
+      const { data: mealData, error: mealError } = await supabase
+        .from('meals')
+        .select('eaten_count')
+        .eq('id', mealId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!mealError && mealData) {
+        const currentCount = mealData.eaten_count || 0;
+        const newCount = Math.max(0, currentCount - 1); // Don't go below 0
+
+        // Update the eaten count
+        const { error: updateError } = await supabase
+          .from('meals')
+          .update({
+            eaten_count: newCount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', mealId)
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('Error updating eaten count on meal removal:', updateError);
+        } else {
+          console.log(`Decreased eaten count for meal ${mealId}: ${currentCount} -> ${newCount}`);
+        }
+      }
+    }
+
     // Delete the meal plan
     const { error } = await supabase
       .from('meal_plans')
@@ -366,7 +489,7 @@ export async function initDB() {
 
     // Test if tables exist by querying them
     try {
-      const { data: meals, error: mealsError } = await supabase
+      const { error: mealsError } = await supabase
         .from('meals')
         .select('count')
         .limit(1);
@@ -382,7 +505,7 @@ export async function initDB() {
     }
 
     try {
-      const { data: events, error: eventsError } = await supabase
+      const { error: eventsError } = await supabase
         .from('events')
         .select('count')
         .limit(1);
@@ -402,4 +525,144 @@ export async function initDB() {
   }
 
   return Promise.resolve();
+}
+
+// Copy last week's meal plans to current week
+export async function copyLastWeekMealPlans(currentWeekKey) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    console.log('Copying last week meals for week:', currentWeekKey);
+
+    // Calculate last week's key (7 days ago)
+    const currentMondayDate = new Date(currentWeekKey);
+    const lastMondayDate = new Date(currentMondayDate);
+    lastMondayDate.setDate(lastMondayDate.getDate() - 7);
+    const lastWeekKey = lastMondayDate.toISOString().split('T')[0];
+
+    console.log('Last week key:', lastWeekKey);
+
+    // Get last week's meal plans
+    const lastWeekPlans = await getWeekMealPlans(lastWeekKey);
+
+    if (lastWeekPlans.length === 0) {
+      throw new Error('No meals found in last week to copy');
+    }
+
+    console.log('Found', lastWeekPlans.length, 'meals from last week');
+
+    // Delete any existing meal plans for current week first
+    const { error: deleteError } = await supabase
+      .from('meal_plans')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('week_key', currentWeekKey);
+
+    if (deleteError) {
+      console.error('Error clearing current week:', deleteError);
+      throw deleteError;
+    }
+
+    // Create new meal plans for current week
+    const newMealPlans = [];
+    const mealTrackingUpdates = new Map(); // Track which meals to update
+
+    for (const plan of lastWeekPlans) {
+      // Calculate the corresponding date in current week
+      const lastWeekDate = new Date(plan.date);
+      const dayOfWeek = lastWeekDate.getDay();
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Monday=0 system
+
+      const newDate = new Date(currentWeekKey);
+      newDate.setDate(newDate.getDate() + mondayOffset);
+      const newDateStr = newDate.toISOString().split('T')[0];
+
+      const newPlan = {
+        user_id: user.id,
+        date: newDateStr,
+        week_key: currentWeekKey,
+        meal_id: plan.meal_id,
+        meal_data: plan.meal_data || plan.meal, // Include the full meal data
+        selected_version: plan.selected_version,
+        from_freezer: plan.from_freezer || false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      newMealPlans.push(newPlan);
+
+      // Track meal for updating eaten count and last eaten date
+      const mealId = plan.meal_id || plan.meal?.id;
+      if (mealId && !mealTrackingUpdates.has(mealId)) {
+        mealTrackingUpdates.set(mealId, {
+          meal_id: mealId,
+          dates: []
+        });
+      }
+      if (mealId) {
+        mealTrackingUpdates.get(mealId).dates.push(newDateStr);
+      }
+    }
+
+    // Insert all new meal plans
+    const { data: insertedPlans, error: insertError } = await supabase
+      .from('meal_plans')
+      .insert(newMealPlans)
+      .select();
+
+    if (insertError) {
+      console.error('Error inserting new meal plans:', insertError);
+      throw insertError;
+    }
+
+    console.log('Successfully copied', insertedPlans.length, 'meal plans');
+
+    // Update meal tracking data (eaten count and last eaten date)
+    for (const [mealId, trackingData] of mealTrackingUpdates) {
+      try {
+        // Get current meal data
+        const { data: mealData, error: mealError } = await supabase
+          .from('meals')
+          .select('eaten_count, last_eaten')
+          .eq('id', mealId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (mealError) {
+          console.error('Error getting meal data for tracking:', mealError);
+          continue;
+        }
+
+        // Find the most recent date for this meal
+        const mostRecentDate = trackingData.dates.sort().pop();
+        const newEatenCount = (mealData.eaten_count || 0) + trackingData.dates.length;
+
+        // Update meal tracking
+        const { error: updateError } = await supabase
+          .from('meals')
+          .update({
+            eaten_count: newEatenCount,
+            last_eaten: mostRecentDate,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', mealId)
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('Error updating meal tracking:', updateError);
+        } else {
+          console.log(`Updated meal ${mealId}: eaten_count=${newEatenCount}, last_eaten=${mostRecentDate}`);
+        }
+      } catch (error) {
+        console.error('Error updating tracking for meal:', mealId, error);
+      }
+    }
+
+    return insertedPlans;
+
+  } catch (error) {
+    console.error('Error copying last week meal plans:', error);
+    throw error;
+  }
 }

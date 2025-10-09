@@ -3,7 +3,11 @@ import { supabase } from '../lib/supabase';
 // Snacks CRUD operations
 export async function getSnacks() {
   try {
+    console.log('getSnacks called');
+
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('Current user for snacks:', user?.id);
+
     if (!user) throw new Error('Not authenticated');
 
     const { data, error } = await supabase
@@ -12,9 +16,14 @@ export async function getSnacks() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    console.log('Snacks query result:', { data, error });
 
-    console.log('Loaded snacks:', data);
+    if (error) {
+      console.error('Supabase snacks query error:', error);
+      throw error;
+    }
+
+    console.log('Loaded snacks:', (data || []).length, 'snacks');
     return data || [];
   } catch (error) {
     console.error('Error fetching snacks:', error);
@@ -24,15 +33,8 @@ export async function getSnacks() {
 
 export async function saveSnack(snack) {
   try {
-    console.log('Attempting to save snack:', snack);
-
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('No authenticated user found');
-      throw new Error('Not authenticated');
-    }
-
-    console.log('User authenticated:', user.id);
+    if (!user) throw new Error('Not authenticated');
 
     const snackData = {
       user_id: user.id,
@@ -47,12 +49,9 @@ export async function saveSnack(snack) {
       snackData.id = snack.id;
     }
 
-    console.log('Processed snack data for DB:', snackData);
-
     let result;
     if (snack.id) {
       // Update existing snack
-      console.log('Updating existing snack with ID:', snack.id);
       const { data, error } = await supabase
         .from('snacks')
         .update(snackData)
@@ -61,14 +60,10 @@ export async function saveSnack(snack) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase update error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
     } else {
       // Create new snack
-      console.log('Creating new snack');
       snackData.created_at = new Date().toISOString();
       const { data, error } = await supabase
         .from('snacks')
@@ -76,14 +71,10 @@ export async function saveSnack(snack) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase insert error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
     }
 
-    console.log('Supabase operation successful:', result);
     return result;
   } catch (error) {
     console.error('Error saving snack:', error);
@@ -136,22 +127,16 @@ export async function initDB() {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.log('No authenticated user for snacks table check');
       return Promise.resolve();
     }
 
-    console.log('Testing snacks table...');
-
-    const { data: snacks, error: snacksError } = await supabase
+    const { error: snacksError } = await supabase
       .from('snacks')
       .select('count')
       .limit(1);
 
     if (snacksError) {
       console.error('Snacks table error:', snacksError);
-      console.log('❌ Please create the snacks table in Supabase using the provided SQL');
-    } else {
-      console.log('✅ Snacks table exists');
     }
   } catch (error) {
     console.error('Error checking snacks table:', error);

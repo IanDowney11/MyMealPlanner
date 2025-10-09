@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input } from '@mui/material';
-import { FileDownload as ExportIcon, FileUpload as ImportIcon } from '@mui/icons-material';
+import { FileDownload as ExportIcon, FileUpload as ImportIcon, BugReport as DebugIcon } from '@mui/icons-material';
 import { getMeals, saveMeal, initDB } from '../services/mealsService';
+import { testSupabaseConnection } from '../utils/debugSupabase';
 
 function Admin() {
   const [meals, setMeals] = useState([]);
@@ -292,6 +293,28 @@ function Admin() {
             <strong>⚠️ Important:</strong> Importing will add new meals to your collection.
             Meals with the same title may be duplicated. Make sure to backup your data before importing.
           </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Debug Section */}
+      <Card sx={{ mb: 4, backgroundColor: 'error.lighter' }}>
+        <CardContent>
+          <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'bold', color: 'error.dark' }}>
+            🐛 Debug Tools
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Temporary debugging tools to diagnose connection issues.
+          </Typography>
+
+          <Button
+            onClick={testSupabaseConnection}
+            variant="contained"
+            color="error"
+            startIcon={<DebugIcon />}
+            size="large"
+          >
+            Test Supabase Connection
+          </Button>
         </CardContent>
       </Card>
     </Box>

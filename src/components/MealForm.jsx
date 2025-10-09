@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input } from '@mui/material';
-import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction, Divider } from '@mui/material';
+import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 function MealForm({ meal = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -8,9 +8,11 @@ function MealForm({ meal = null, onSave, onCancel }) {
     description: '',
     rating: 1,
     freezerPortions: 0,
-    image: ''
+    image: '',
+    versions: []
   });
   const [imagePreview, setImagePreview] = useState('');
+  const [newVersion, setNewVersion] = useState('');
 
   useEffect(() => {
     if (meal) {
@@ -19,11 +21,13 @@ function MealForm({ meal = null, onSave, onCancel }) {
         description: meal.description || '',
         rating: meal.rating || 1,
         freezerPortions: meal.freezerPortions || 0,
-        image: meal.image || ''
+        image: meal.image || '',
+        versions: meal.versions || []
       });
       setImagePreview(meal.image || '');
     }
   }, [meal]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +47,30 @@ function MealForm({ meal = null, onSave, onCancel }) {
         setImagePreview(imageData);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddVersion = () => {
+    if (newVersion.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        versions: [...prev.versions, newVersion.trim()]
+      }));
+      setNewVersion('');
+    }
+  };
+
+  const handleDeleteVersion = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      versions: prev.versions.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleVersionKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddVersion();
     }
   };
 
@@ -167,6 +195,59 @@ function MealForm({ meal = null, onSave, onCancel }) {
                     borderColor: 'grey.300'
                   }}
                 />
+              </Box>
+            )}
+          </FormControl>
+
+          <FormControl sx={{ mt: 3, mb: 2 }} fullWidth>
+            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Meal Versions
+            </FormLabel>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add different variations of this meal (e.g., "with brown rice", "on zucchini noodles")
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <TextField
+                value={newVersion}
+                onChange={(e) => setNewVersion(e.target.value)}
+                onKeyPress={handleVersionKeyPress}
+                placeholder="Enter version name..."
+                size="small"
+                fullWidth
+              />
+              <Button
+                onClick={handleAddVersion}
+                variant="outlined"
+                startIcon={<AddIcon />}
+                disabled={!newVersion.trim()}
+              >
+                Add
+              </Button>
+            </Box>
+
+            {formData.versions.length > 0 && (
+              <Box sx={{ border: 1, borderColor: 'grey.300', borderRadius: 1, overflow: 'hidden' }}>
+                <List dense>
+                  {formData.versions.map((version, index) => (
+                    <React.Fragment key={index}>
+                      <ListItem>
+                        <ListItemText primary={version} />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleDeleteVersion(index)}
+                            color="error"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                      {index < formData.versions.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
               </Box>
             )}
           </FormControl>

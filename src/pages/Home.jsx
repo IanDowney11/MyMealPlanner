@@ -122,10 +122,24 @@ function Home() {
               <Typography
                 variant="h5"
                 component="h3"
-                sx={{ mb: 1, fontWeight: 'bold' }}
+                sx={{ mb: todaysPlannedMeal.selectedVersion ? 0.5 : 1, fontWeight: 'bold' }}
               >
                 {todaysPlannedMeal.title}
               </Typography>
+
+              {todaysPlannedMeal.selectedVersion && (
+                <Typography
+                  variant="body1"
+                  color="text.secondary"
+                  sx={{
+                    mb: 1,
+                    fontStyle: 'italic',
+                    fontSize: '1rem'
+                  }}
+                >
+                  {todaysPlannedMeal.selectedVersion}
+                </Typography>
+              )}
 
               {todaysPlannedMeal.description && (
                 <Typography

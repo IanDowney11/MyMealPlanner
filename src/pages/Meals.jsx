@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating } from '@mui/material';
-import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
+import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon, Schedule as ScheduleIcon, Restaurant as RestaurantIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
 import { getMeals, saveMeal, deleteMeal, initDB } from '../services/mealsService';
 
@@ -87,6 +87,14 @@ function Meals() {
         case 'freezerPortions':
           aValue = a.freezerPortions || 0;
           bValue = b.freezerPortions || 0;
+          break;
+        case 'lastEaten':
+          aValue = a.lastEaten ? new Date(a.lastEaten).getTime() : 0;
+          bValue = b.lastEaten ? new Date(b.lastEaten).getTime() : 0;
+          break;
+        case 'eatenCount':
+          aValue = a.eatenCount || 0;
+          bValue = b.eatenCount || 0;
           break;
         default:
           return 0;
@@ -341,6 +349,46 @@ function Meals() {
                     </Box>
                   </Box>
                 </TableCell>
+                <TableCell
+                  onClick={() => handleSort('lastEaten')}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    bgcolor: sortField === 'lastEaten' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'lastEaten' ? 'primary.light' : 'grey.100'
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Last Eaten
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {getSortIcon('lastEaten')}
+                    </Box>
+                  </Box>
+                </TableCell>
+                <TableCell
+                  onClick={() => handleSort('eatenCount')}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    bgcolor: sortField === 'eatenCount' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'eatenCount' ? 'primary.light' : 'grey.100'
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      Times Eaten
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {getSortIcon('eatenCount')}
+                    </Box>
+                  </Box>
+                </TableCell>
                 <TableCell>
                   Actions
                 </TableCell>
@@ -405,6 +453,36 @@ function Meals() {
                       variant="filled"
                       size="small"
                     />
+                  </TableCell>
+                  <TableCell>
+                    {meal.lastEaten ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                        <Typography variant="body2">
+                          {new Date(meal.lastEaten).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.disabled' }}>
+                        Never eaten
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', alignItems: 'center', justify: 'center', gap: 1 }}>
+                      <RestaurantIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Chip
+                        label={meal.eatenCount || 0}
+                        color={meal.eatenCount > 0 ? 'primary' : 'default'}
+                        variant="outlined"
+                        size="small"
+                        sx={{ borderRadius: '4px' }}
+                      />
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,6 +16,7 @@ import {
   IconButton
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
+import VersionSelectionModal from './VersionSelectionModal';
 
 function MealAssignmentModal({
   open,
@@ -26,15 +27,43 @@ function MealAssignmentModal({
   onAssignMeal,
   formatDisplayDate
 }) {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [versionModalOpen, setVersionModalOpen] = useState(false);
+
   if (!meal) return null;
 
   const handleDateSelect = async (date) => {
+    const hasVersions = meal.versions && meal.versions.length > 0;
+
+    if (hasVersions) {
+      // Show version selection modal
+      setSelectedDate(date);
+      setVersionModalOpen(true);
+    } else {
+      // Assign meal directly
+      try {
+        await onAssignMeal(date, meal, null);
+        onClose();
+      } catch (error) {
+        console.error('Error assigning meal:', error);
+      }
+    }
+  };
+
+  const handleVersionSelect = async (selectedVersion) => {
     try {
-      await onAssignMeal(date, meal);
+      await onAssignMeal(selectedDate, meal, selectedVersion);
+      setVersionModalOpen(false);
+      setSelectedDate(null);
       onClose();
     } catch (error) {
-      console.error('Error assigning meal:', error);
+      console.error('Error assigning meal with version:', error);
     }
+  };
+
+  const handleVersionModalClose = () => {
+    setVersionModalOpen(false);
+    setSelectedDate(null);
   };
 
   const formatDate = (date) => {
@@ -166,6 +195,14 @@ function MealAssignmentModal({
           Cancel
         </Button>
       </DialogActions>
+
+      {/* Version Selection Modal */}
+      <VersionSelectionModal
+        meal={meal}
+        open={versionModalOpen}
+        onClose={handleVersionModalClose}
+        onSelect={handleVersionSelect}
+      />
     </Dialog>
   );
 }

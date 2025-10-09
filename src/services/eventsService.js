@@ -21,8 +21,6 @@ export async function getEvents() {
 
 export async function saveEvent(event) {
   try {
-    console.log('Attempting to save event:', event);
-
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
@@ -39,12 +37,10 @@ export async function saveEvent(event) {
       eventData.id = event.id;
     }
 
-    console.log('Processed event data for DB:', eventData);
-
     // If event has an ID, update it; otherwise, create new
     let result;
     if (event.id) {
-      console.log('Updating existing event with ID:', event.id);
+      // Update existing event
       const { data, error } = await supabase
         .from('events')
         .update(eventData)
@@ -53,13 +49,10 @@ export async function saveEvent(event) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase event update error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
     } else {
-      console.log('Creating new event');
+      // Create new event
       eventData.created_at = new Date().toISOString();
       const { data, error } = await supabase
         .from('events')
@@ -67,14 +60,10 @@ export async function saveEvent(event) {
         .select()
         .single();
 
-      if (error) {
-        console.error('Supabase event insert error:', error);
-        throw error;
-      }
+      if (error) throw error;
       result = data;
     }
 
-    console.log('Event operation successful:', result);
     return result;
   } catch (error) {
     console.error('Error saving event:', error);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, IconButton, Typography, Card, CardContent, Box, TextField, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar } from '@mui/material';
+import { Button, IconButton, Typography, Card, CardContent, Box, TextField, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 import SnackForm from '../components/SnackForm';
 import { getSnacks, saveSnack, deleteSnack, initDB } from '../services/snacksService';
@@ -68,8 +68,12 @@ function Snacks() {
   };
 
   const getSortIcon = (field) => {
-    if (sortField !== field) return <UnfoldMoreIcon />;
-    return sortDirection === 'asc' ? <ArrowUpIcon /> : <ArrowDownIcon />;
+    if (sortField !== field) {
+      return <UnfoldMoreIcon sx={{ fontSize: 16, opacity: 0.5 }} />;
+    }
+    return sortDirection === 'asc' ?
+      <ArrowUpIcon sx={{ fontSize: 16 }} /> :
+      <ArrowDownIcon sx={{ fontSize: 16 }} />;
   };
 
   const filteredAndSortedSnacks = snacks
@@ -100,99 +104,165 @@ function Snacks() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2 }}>
-        <CircularProgress color="primary" size={40} />
-        <Typography variant="h6" color="text.secondary">
-          Loading snacks...
-        </Typography>
+      <Box sx={{ textAlign: 'center', py: 6 }}>
+        <CircularProgress sx={{ mb: 2 }} />
+        <Typography variant="h5">Loading snacks...</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
-      {/* Header */}
+    <Box>
       <Box sx={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        mb: 3,
+        mb: 4,
         flexWrap: 'wrap',
-        gap: 2
+        gap: 3
       }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+        <Typography variant="h3" component="h1" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
           My Snacks
         </Typography>
-
         <Button
+          onClick={() => setShowForm(true)}
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setShowForm(true)}
-          sx={{ borderRadius: 2 }}
+          size="large"
         >
-          Add Snack
+          Add New Snack
         </Button>
       </Box>
 
-      {/* Search Bar */}
-      <Box sx={{ mb: 3 }}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          placeholder="Search snacks..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
-            endAdornment: searchTerm && (
-              <IconButton onClick={() => setSearchTerm('')} size="small">
-                <ClearIcon />
-              </IconButton>
-            ),
-          }}
-        />
-      </Box>
-
-      {/* Snacks Table */}
-      {filteredAndSortedSnacks.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 8 }}>
+      {snacks.length > 0 && (
+        <Card sx={{ mb: 4 }}>
           <CardContent>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              {searchTerm ? 'No snacks found matching your search' : 'No snacks yet'}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap'
+            }}>
+              <TextField
+                placeholder="Search snacks by title or description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                variant="outlined"
+                size="medium"
+                sx={{ width: 350, maxWidth: '100%' }}
+                InputProps={{
+                  startAdornment: (
+                    <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                  )
+                }}
+              />
+
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                flexWrap: 'wrap'
+              }}>
+                {searchTerm && (
+                  <Button
+                    onClick={() => setSearchTerm('')}
+                    variant="outlined"
+                    startIcon={<ClearIcon />}
+                    color="inherit"
+                  >
+                    Clear
+                  </Button>
+                )}
+
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}
+                >
+                  {searchTerm ? (
+                    `${filteredAndSortedSnacks.length} of ${snacks.length} snacks`
+                  ) : (
+                    `${snacks.length} total snacks`
+                  )}
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {snacks.length === 0 ? (
+        <Card sx={{ textAlign: 'center', py: 6, border: '2px dashed', borderColor: 'grey.300', bgcolor: 'grey.50' }}>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+              No snacks saved yet
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {searchTerm ? 'Try adjusting your search terms' : 'Start building your snack collection!'}
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Start by adding your first snack!
             </Typography>
-            {!searchTerm && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setShowForm(true)}
-              >
-                Add Your First Snack
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowForm(true)}
+              variant="contained"
+              startIcon={<AddIcon />}
+              size="large"
+            >
+              Add Your First Snack
+            </Button>
+          </CardContent>
+        </Card>
+      ) : filteredAndSortedSnacks.length === 0 && searchTerm ? (
+        <Card sx={{ textAlign: 'center', py: 6, border: '2px solid', borderColor: 'warning.main', bgcolor: 'warning.light' }}>
+          <CardContent>
+            <Typography variant="h6" color="warning.dark" sx={{ mb: 1 }}>
+              No snacks found
+            </Typography>
+            <Typography variant="body1" color="warning.dark" sx={{ mb: 3 }}>
+              No snacks match your search for "{searchTerm}"
+            </Typography>
+            <Button
+              onClick={() => setSearchTerm('')}
+              variant="contained"
+              color="warning"
+              startIcon={<ClearIcon />}
+            >
+              Clear Search
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
-          <Table>
+          <Table sx={{ minWidth: 650 }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: 'grey.50' }}>
-                <TableCell width={80}>Image</TableCell>
+              <TableRow>
+                <TableCell>
+                  Image
+                </TableCell>
                 <TableCell
-                  sx={{ cursor: 'pointer', userSelect: 'none' }}
                   onClick={() => handleSort('title')}
+                  sx={{
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    bgcolor: sortField === 'title' ? 'primary.light' : 'inherit',
+                    '&:hover': {
+                      bgcolor: sortField === 'title' ? 'primary.light' : 'grey.100'
+                    }
+                  }}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                       Title
                     </Typography>
-                    {getSortIcon('title')}
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {getSortIcon('title')}
+                    </Box>
                   </Box>
                 </TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell width={120} align="center">Actions</TableCell>
+                <TableCell>
+                  Description
+                </TableCell>
+                <TableCell>
+                  Actions
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -200,64 +270,70 @@ function Snacks() {
                 <TableRow key={snack.id} sx={{ '&:hover': { bgcolor: 'grey.50' } }}>
                   <TableCell>
                     {snack.image ? (
-                      <Avatar
+                      <Box
+                        component="img"
                         src={snack.image}
                         alt={snack.title}
-                        sx={{ width: 50, height: 50, borderRadius: 1 }}
-                        variant="rounded"
+                        sx={{
+                          width: 60,
+                          height: 60,
+                          objectFit: 'cover',
+                          borderRadius: 1
+                        }}
                       />
                     ) : (
-                      <Avatar
-                        sx={{
-                          width: 50,
-                          height: 50,
-                          bgcolor: 'primary.light',
-                          borderRadius: 1,
-                          fontSize: '20px'
-                        }}
-                        variant="rounded"
-                      >
+                      <Box sx={{
+                        width: 60,
+                        height: 60,
+                        bgcolor: 'grey.200',
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px'
+                      }}>
                         🍿
-                      </Avatar>
+                      </Box>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                       {snack.title}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{
-                        maxWidth: 300,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {snack.description || 'No description'}
-                    </Typography>
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    {snack.description ? (
+                      <Typography variant="body2" color="text.secondary">
+                        {snack.description.length > 100 ?
+                          snack.description.substring(0, 100) + '...' :
+                          snack.description}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" sx={{ fontStyle: 'italic', color: 'text.disabled' }}>
+                        No description
+                      </Typography>
+                    )}
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <IconButton
+                      <Button
                         onClick={() => handleEditSnack(snack)}
-                        color="primary"
+                        variant="contained"
+                        color="secondary"
                         size="small"
-                        title="Edit"
+                        startIcon={<EditIcon />}
                       >
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton
+                        Edit
+                      </Button>
+                      <Button
                         onClick={() => handleDeleteSnack(snack.id)}
+                        variant="contained"
                         color="error"
                         size="small"
-                        title="Delete"
+                        startIcon={<DeleteIcon />}
                       >
-                        <DeleteIcon />
-                      </IconButton>
+                        Delete
+                      </Button>
                     </Box>
                   </TableCell>
                 </TableRow>

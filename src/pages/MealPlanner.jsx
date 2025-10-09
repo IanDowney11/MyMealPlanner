@@ -28,14 +28,16 @@ import {
   Event as EventIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  MoreVert as MoreVertIcon
+  MoreVert as MoreVertIcon,
+  ContentCopy as CopyIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
 import MealAssignmentModal from '../components/MealAssignmentModal';
-import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans } from '../services/mealsService';
+import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans, copyLastWeekMealPlans } from '../services/mealsService';
 import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsService';
 import EventModal from '../components/EventModal';
+import VersionSelectionModal from '../components/VersionSelectionModal';
 
 const MEAL_TYPE = 'meal';
 
@@ -44,7 +46,6 @@ function MealPlannerContent() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const [draggedMeal, setDraggedMeal] = useState(null);
   const [weeklyPlan, setWeeklyPlan] = useState({});
   const [currentWeekStart, setCurrentWeekStart] = useState(null);
   const [selectedWeekOffset, setSelectedWeekOffset] = useState(0);
@@ -58,6 +59,11 @@ function MealPlannerContent() {
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDateForEvent, setSelectedDateForEvent] = useState(null);
+
+  // Version selection state
+  const [versionSelectionOpen, setVersionSelectionOpen] = useState(false);
+  const [mealForVersionSelection, setMealForVersionSelection] = useState(null);
+  const [dateForVersionSelection, setDateForVersionSelection] = useState(null);
   const [eventMenuAnchor, setEventMenuAnchor] = useState(null);
   const [eventMenuData, setEventMenuData] = useState(null);
 
@@ -100,11 +106,11 @@ function MealPlannerContent() {
     const tomorrowStr = formatDate(tomorrow);
 
     if (dateStr === todayStr) {
-      return `Today (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+      return `Today (${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
     } else if (dateStr === tomorrowStr) {
-      return `Tomorrow (${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+      return `Tomorrow (${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
     } else {
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString(undefined, {
         weekday: 'long',
         month: 'short',
         day: 'numeric'
@@ -191,10 +197,17 @@ function MealPlannerContent() {
     }
   };
 
-  const handleMealAssignment = async (date, meal) => {
+  const handleMealAssignment = async (date, meal, selectedVersion = null) => {
     try {
       const dateStr = formatDate(date);
-      const savedPlan = await saveMealPlan(dateStr, meal);
+
+      // Create meal with version information
+      const mealWithVersion = {
+        ...meal,
+        selectedVersion: selectedVersion
+      };
+
+      const savedPlan = await saveMealPlan(dateStr, mealWithVersion);
 
       // Update weekly plan with the updated meal data and fromFreezer info
       setWeeklyPlan(prev => ({
@@ -218,6 +231,35 @@ function MealPlannerContent() {
   const handleMobileModalClose = () => {
     setMobileModalOpen(false);
     setSelectedMealForModal(null);
+  };
+
+  const handleVersionSelectionClose = () => {
+    setVersionSelectionOpen(false);
+    setMealForVersionSelection(null);
+    setDateForVersionSelection(null);
+  };
+
+  const handleVersionSelect = async (selectedVersion) => {
+    try {
+      await handleMealAssignment(dateForVersionSelection, mealForVersionSelection, selectedVersion);
+      handleVersionSelectionClose();
+    } catch (error) {
+      console.error('Error assigning meal with version:', error);
+    }
+  };
+
+  const handleDragDrop = (date, meal) => {
+    const hasVersions = meal.versions && meal.versions.length > 0;
+
+    if (hasVersions) {
+      // Show version selection modal
+      setMealForVersionSelection(meal);
+      setDateForVersionSelection(date);
+      setVersionSelectionOpen(true);
+    } else {
+      // Assign meal directly
+      handleMealAssignment(date, meal, null);
+    }
   };
 
   const removeMealFromDay = async (date) => {
@@ -298,6 +340,49 @@ function MealPlannerContent() {
   const handleEventMenuClose = () => {
     setEventMenuAnchor(null);
     setEventMenuData(null);
+  };
+
+  const handleCopyLastWeek = async () => {
+    if (!currentWeekStart) return;
+
+    const confirmMessage = 'This will copy all meals from last week to the current week. Any existing meals for this week will be replaced. Continue?';
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      setLoading(true);
+
+      // Ensure currentWeekStart is a proper Date object
+      const weekStartDate = currentWeekStart instanceof Date ? currentWeekStart : new Date(currentWeekStart);
+      const currentWeekKey = weekStartDate.toISOString().split('T')[0];
+
+      console.log('Current week start:', currentWeekStart);
+      console.log('Current week key:', currentWeekKey);
+
+      await copyLastWeekMealPlans(currentWeekKey);
+
+      // Reload the week plan to show the copied meals
+      await loadWeekPlan();
+
+      alert('Successfully copied last week\'s meals!');
+    } catch (error) {
+      console.error('Error copying last week:', error);
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+
+      let errorMessage = 'Failed to copy last week\'s meals. ';
+
+      if (error.message === 'No meals found in last week to copy') {
+        errorMessage += 'There are no meals planned for last week.';
+      } else if (error.message === 'Not authenticated') {
+        errorMessage += 'You are not logged in. Please log in and try again.';
+      } else {
+        errorMessage += `Error: ${error.message}`;
+      }
+
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getWeekDisplayText = () => {
@@ -394,11 +479,28 @@ function MealPlannerContent() {
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                mb: 0.5
+                mb: meal.selectedVersion ? 0.25 : 0.5
               }}
             >
               {meal.title}
             </Typography>
+            {meal.selectedVersion && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{
+                  fontStyle: 'italic',
+                  fontSize: '0.75rem',
+                  mb: 0.5,
+                  display: 'block',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {meal.selectedVersion}
+              </Typography>
+            )}
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Rating
                 value={meal.rating || 0}
@@ -459,7 +561,7 @@ function MealPlannerContent() {
 
     const [{ isOver }, drop] = useDrop({
       accept: MEAL_TYPE,
-      drop: (meal) => handleMealAssignment(date, meal),
+      drop: (meal) => handleDragDrop(date, meal),
       collect: (monitor) => ({
         isOver: monitor.isOver(),
       }),
@@ -780,6 +882,19 @@ function MealPlannerContent() {
             >
               Next Week
             </Button>
+
+            {/* Copy Last Week Button - only show for current week */}
+            {selectedWeekOffset === 0 && (
+              <Button
+                onClick={handleCopyLastWeek}
+                variant="contained"
+                startIcon={<CopyIcon />}
+                color="secondary"
+                sx={{ ml: 1 }}
+              >
+                Copy Last Week
+              </Button>
+            )}
           </Box>
 
           <Box sx={{
@@ -787,7 +902,7 @@ function MealPlannerContent() {
           }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
               {weekDates.length > 0 &&
-                `${weekDates[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                `${weekDates[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
               }
             </Typography>
             <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
@@ -855,6 +970,14 @@ function MealPlannerContent() {
           <ListItemText>Delete Event</ListItemText>
         </MenuItem>
       </Menu>
+
+      {/* Version Selection Modal */}
+      <VersionSelectionModal
+        meal={mealForVersionSelection}
+        open={versionSelectionOpen}
+        onClose={handleVersionSelectionClose}
+        onSelect={handleVersionSelect}
+      />
     </Box>
   );
 }

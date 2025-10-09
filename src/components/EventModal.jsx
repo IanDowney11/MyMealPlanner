@@ -164,7 +164,7 @@ function EventModal({ open, onClose, onSave, event = null, selectedDate = null }
 
           {formData.type === 'weekly' && (
             <Alert severity="info" sx={{ mt: 1 }}>
-              This event will appear every week on {formData.date ? new Date(formData.date).toLocaleDateString('en-US', { weekday: 'long' }) : 'the selected day'}.
+              This event will appear every week on {formData.date ? new Date(formData.date).toLocaleDateString(undefined, { weekday: 'long' }) : 'the selected day'}.
             </Alert>
           )}
         </Box>
