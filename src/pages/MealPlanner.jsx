@@ -17,7 +17,9 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  TextField,
+  Autocomplete
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -29,7 +31,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
-  ContentCopy as CopyIcon
+  ContentCopy as CopyIcon,
+  LocalOffer as TagIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
@@ -66,6 +70,7 @@ function MealPlannerContent() {
   const [dateForVersionSelection, setDateForVersionSelection] = useState(null);
   const [eventMenuAnchor, setEventMenuAnchor] = useState(null);
   const [eventMenuData, setEventMenuData] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
 
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
@@ -484,6 +489,11 @@ function MealPlannerContent() {
             >
               {meal.title}
             </Typography>
+            {meal.versions && meal.versions.length > 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                {meal.versions.length} version{meal.versions.length !== 1 ? 's' : ''}
+              </Typography>
+            )}
             {meal.selectedVersion && (
               <Typography
                 variant="caption"
@@ -512,7 +522,7 @@ function MealPlannerContent() {
                 // Sidebar: show freezer portions count
                 meal.freezerPortions > 0 && (
                   <Chip
-                    label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} frozen`}
+                    label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} in fridge/freezer`}
                     color="success"
                     size="small"
                     sx={{
@@ -531,7 +541,7 @@ function MealPlannerContent() {
               ) : (
                 // Calendar: show freezer vs fresh indicator
                 <Chip
-                  label={isFromFreezer ? '🧊 From Freezer' : '🔥 Cook Fresh'}
+                  label={isFromFreezer ? '🧊 From Fridge/Freezer' : '🔥 Cook Fresh'}
                   color={isFromFreezer ? 'info' : 'warning'}
                   size="small"
                   sx={{
@@ -546,6 +556,36 @@ function MealPlannerContent() {
                     }
                   }}
                 />
+              )}
+              {meal.tags && meal.tags.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25, mt: 0.5 }}>
+                  {meal.tags.slice(0, 3).map((tag, index) => (
+                    <Chip
+                      key={index}
+                      label={tag}
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      sx={{
+                        fontSize: '0.6rem',
+                        height: 16,
+                        '& .MuiChip-label': { px: 0.5 }
+                      }}
+                    />
+                  ))}
+                  {meal.tags.length > 3 && (
+                    <Chip
+                      label={`+${meal.tags.length - 3}`}
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        fontSize: '0.6rem',
+                        height: 16,
+                        '& .MuiChip-label': { px: 0.5 }
+                      }}
+                    />
+                  )}
+                </Box>
               )}
             </Box>
           </Box>
@@ -783,6 +823,59 @@ function MealPlannerContent() {
             )}
           </Box>
 
+          {/* Tag Filter */}
+          {(() => {
+            const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
+            return allTags.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Autocomplete
+                  multiple
+                  options={allTags}
+                  value={selectedTags}
+                  onChange={(event, newValue) => setSelectedTags(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      placeholder="Filter by tags..."
+                      size="small"
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <TagIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 16 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        )
+                      }}
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        variant="outlined"
+                        label={option}
+                        size="small"
+                        {...getTagProps({ index })}
+                        key={option}
+                        sx={{ fontSize: '0.7rem', height: 20 }}
+                      />
+                    ))
+                  }
+                />
+                {selectedTags.length > 0 && (
+                  <Button
+                    onClick={() => setSelectedTags([])}
+                    size="small"
+                    startIcon={<ClearIcon />}
+                    sx={{ mt: 1, fontSize: '0.7rem' }}
+                  >
+                    Clear Tags
+                  </Button>
+                )}
+              </Box>
+            );
+          })()}
+
           {meals.length === 0 ? (
             <Box sx={{
               textAlign: 'center',
@@ -809,9 +902,15 @@ function MealPlannerContent() {
               >
                 {isMobile ? 'Tap meals to schedule them' : 'Drag meals to plan your week'}
               </Typography>
-              {meals.map(meal => (
-                <DraggableMealCard key={meal.id} meal={meal} />
-              ))}
+              {meals
+                .filter(meal => {
+                  // Tag filtering
+                  return selectedTags.length === 0 ||
+                    selectedTags.every(tag => meal.tags?.includes(tag));
+                })
+                .map(meal => (
+                  <DraggableMealCard key={meal.id} meal={meal} />
+                ))}
             </Box>
           )}
         </Box>

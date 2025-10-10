@@ -127,7 +127,7 @@ function MealAssignmentModal({
                 </Box>
                 {meal.freezerPortions > 0 && (
                   <Chip
-                    label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} in freezer`}
+                    label={`${meal.freezerPortions} ${meal.freezerPortions === 1 ? 'portion' : 'portions'} in fridge/freezer`}
                     color="success"
                     size="small"
                     sx={{ fontSize: '12px' }}

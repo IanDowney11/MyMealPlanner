@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction, Divider } from '@mui/material';
-import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction, Divider, Autocomplete } from '@mui/material';
+import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon, Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/icons-material';
+import { getMeals } from '../services/mealsService';
 
 function MealForm({ meal = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -9,10 +10,14 @@ function MealForm({ meal = null, onSave, onCancel }) {
     rating: 1,
     freezerPortions: 0,
     image: '',
-    versions: []
+    recipeUrl: '',
+    versions: [],
+    tags: []
   });
   const [imagePreview, setImagePreview] = useState('');
   const [newVersion, setNewVersion] = useState('');
+  const [newTag, setNewTag] = useState('');
+  const [allExistingTags, setAllExistingTags] = useState([]);
 
   useEffect(() => {
     if (meal) {
@@ -22,11 +27,27 @@ function MealForm({ meal = null, onSave, onCancel }) {
         rating: meal.rating || 1,
         freezerPortions: meal.freezerPortions || 0,
         image: meal.image || '',
-        versions: meal.versions || []
+        recipeUrl: meal.recipeUrl || '',
+        versions: meal.versions || [],
+        tags: meal.tags || []
       });
       setImagePreview(meal.image || '');
     }
   }, [meal]);
+
+  useEffect(() => {
+    // Load all existing tags for autocomplete
+    const loadExistingTags = async () => {
+      try {
+        const meals = await getMeals();
+        const allTags = [...new Set(meals.flatMap(m => m.tags || []))].sort();
+        setAllExistingTags(allTags);
+      } catch (error) {
+        console.error('Error loading existing tags:', error);
+      }
+    };
+    loadExistingTags();
+  }, []);
 
 
   const handleChange = (e) => {
@@ -67,6 +88,30 @@ function MealForm({ meal = null, onSave, onCancel }) {
     }));
   };
 
+  const handleAddTag = () => {
+    if (newTag.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, newTag.trim()]
+      }));
+      setNewTag('');
+    }
+  };
+
+  const handleDeleteTag = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleTagKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const handleVersionKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -81,8 +126,19 @@ function MealForm({ meal = null, onSave, onCancel }) {
       return;
     }
 
+    // Auto-add pending version if text field is not empty
+    let finalFormData = { ...formData };
+    if (newVersion.trim()) {
+      finalFormData.versions = [...finalFormData.versions, newVersion.trim()];
+    }
+
+    // Auto-add pending tag if text field is not empty
+    if (newTag.trim()) {
+      finalFormData.tags = [...finalFormData.tags, newTag.trim()];
+    }
+
     const mealData = {
-      ...formData,
+      ...finalFormData,
       id: meal?.id
     };
 
@@ -131,6 +187,21 @@ function MealForm({ meal = null, onSave, onCancel }) {
             rows={3}
           />
 
+          <TextField
+            name="recipeUrl"
+            label="Recipe URL"
+            value={formData.recipeUrl}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+            placeholder="https://example.com/recipe"
+            InputProps={{
+              startAdornment: <LinkIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            }}
+            helperText="Optional: Link to the recipe website"
+          />
+
           <FormControl sx={{ mt: 2, mb: 2 }}>
             <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
               Rating
@@ -152,7 +223,7 @@ function MealForm({ meal = null, onSave, onCancel }) {
 
           <TextField
             name="freezerPortions"
-            label={`${formData.freezerPortions === 1 ? 'Portion' : 'Portions'} in Freezer`}
+            label={`${formData.freezerPortions === 1 ? 'Portion' : 'Portions'} in Fridge/Freezer`}
             type="number"
             value={formData.freezerPortions}
             onChange={handleChange}
@@ -245,6 +316,71 @@ function MealForm({ meal = null, onSave, onCancel }) {
                         </ListItemSecondaryAction>
                       </ListItem>
                       {index < formData.versions.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))}
+                </List>
+              </Box>
+            )}
+          </FormControl>
+
+          <FormControl sx={{ mt: 3, mb: 2 }} fullWidth>
+            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Tags
+            </FormLabel>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Add tags to categorize your meals (e.g., "vegetarian", "quick", "comfort food")
+            </Typography>
+
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Autocomplete
+                freeSolo
+                options={allExistingTags.filter(tag => !formData.tags.includes(tag))}
+                value={newTag}
+                onInputChange={(event, newValue) => setNewTag(newValue)}
+                onChange={(event, newValue) => {
+                  if (newValue && typeof newValue === 'string') {
+                    setNewTag(newValue);
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select existing tag or type new one..."
+                    size="small"
+                    onKeyPress={handleTagKeyPress}
+                  />
+                )}
+                sx={{ flexGrow: 1 }}
+              />
+              <Button
+                onClick={handleAddTag}
+                variant="outlined"
+                startIcon={<AddIcon />}
+                disabled={!newTag.trim()}
+              >
+                Add
+              </Button>
+            </Box>
+
+            {formData.tags.length > 0 && (
+              <Box sx={{ border: 1, borderColor: 'grey.300', borderRadius: 1, overflow: 'hidden' }}>
+                <List dense>
+                  {formData.tags.map((tag, index) => (
+                    <React.Fragment key={index}>
+                      <ListItem>
+                        <ListItemText primary={tag} />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleDeleteTag(index)}
+                            color="error"
+                            size="small"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                      {index < formData.tags.length - 1 && <Divider />}
                     </React.Fragment>
                   ))}
                 </List>

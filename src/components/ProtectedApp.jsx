@@ -12,6 +12,7 @@ import MealPlanner from '../pages/MealPlanner';
 import ShoppingList from '../pages/ShoppingList';
 import Admin from '../pages/Admin';
 import Navigation, { drawerWidth } from './Navigation';
+import PWAInstallPrompt from './PWAInstallPrompt';
 
 function ProtectedApp() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -106,7 +107,7 @@ function ProtectedApp() {
           </Routes>
         </Box>
       </Box>
-      {/* <PWAInstallPrompt /> */}
+      <PWAInstallPrompt />
     </>
   );
 }

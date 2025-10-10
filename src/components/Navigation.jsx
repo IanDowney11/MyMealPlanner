@@ -26,8 +26,7 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Settings as SettingsIcon,
   Close as CloseIcon,
-  ChevronLeft as ChevronLeftIcon,
-  GetApp as InstallIcon
+  ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import UserProfile from './UserProfile';
 
@@ -37,57 +36,6 @@ function Navigation({ open, onToggle }) {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [showInstallButton, setShowInstallButton] = useState(false);
-
-  useEffect(() => {
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setShowInstallButton(true);
-    };
-
-    const handleAppInstalled = () => {
-      setShowInstallButton(false);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
-
-    // Check if app is already installed
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isInstalled = window.navigator.standalone === true || isStandalone;
-    if (!isInstalled) {
-      setShowInstallButton(true);
-    }
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          setShowInstallButton(false);
-        }
-        setDeferredPrompt(null);
-      } catch (error) {
-        console.error('Install prompt error:', error);
-      }
-    } else {
-      // Show manual install instructions
-      alert('To install this app:\n\n' +
-            'Chrome Mobile: Menu (⋮) → "Add to Home screen"\n\n' +
-            'Safari iOS: Share button → "Add to Home Screen"\n\n' +
-            'Chrome Desktop: Look for install icon in address bar');
-    }
-  };
 
   const handleNavItemClick = () => {
     // Close menu on mobile when navigation item is clicked
@@ -178,30 +126,10 @@ function Navigation({ open, onToggle }) {
         })}
       </List>
 
-      {/* Bottom Section - User Profile and Install */}
-      <Box sx={{ mt: 'auto', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {/* Bottom Section - User Profile */}
+      <Box sx={{ mt: 'auto', p: 2 }}>
         {/* User Profile */}
         <UserProfile />
-
-        {/* Install App Button */}
-        {showInstallButton && (
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<InstallIcon />}
-            onClick={handleInstallClick}
-            sx={{
-              borderColor: 'primary.main',
-              color: 'primary.main',
-              '&:hover': {
-                backgroundColor: 'primary.main',
-                color: 'white'
-              }
-            }}
-          >
-            Install App
-          </Button>
-        )}
       </Box>
     </Box>
   );

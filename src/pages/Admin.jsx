@@ -3,12 +3,14 @@ import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Ale
 import { FileDownload as ExportIcon, FileUpload as ImportIcon, BugReport as DebugIcon } from '@mui/icons-material';
 import { getMeals, saveMeal, initDB } from '../services/mealsService';
 import { testSupabaseConnection } from '../utils/debugSupabase';
+import { debugSharingSetup } from '../services/sharingService';
 
 function Admin() {
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [debugEmail, setDebugEmail] = useState('');
 
   useEffect(() => {
     loadMeals();
@@ -185,7 +187,7 @@ function Admin() {
                   {meals.filter(m => m.freezerPortions > 0).length}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  With Freezer Portions
+                  With Fridge/Freezer Portions
                 </Typography>
               </Card>
             </Grid>
@@ -201,7 +203,7 @@ function Admin() {
           </Typography>
 
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
-            Export all your meals to a JSON file for backup or sharing. The exported file will include all meal data including titles, descriptions, ratings, images, and freezer portions.
+            Export all your meals to a JSON file for backup or sharing. The exported file will include all meal data including titles, descriptions, ratings, images, and fridge/freezer portions.
           </Typography>
 
           <Button
@@ -303,18 +305,45 @@ function Admin() {
             🐛 Debug Tools
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Temporary debugging tools to diagnose connection issues.
+            Debugging tools to diagnose connection and sharing issues.
           </Typography>
 
-          <Button
-            onClick={testSupabaseConnection}
-            variant="contained"
-            color="error"
-            startIcon={<DebugIcon />}
-            size="large"
-          >
-            Test Supabase Connection
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <Button
+              onClick={testSupabaseConnection}
+              variant="contained"
+              color="error"
+              startIcon={<DebugIcon />}
+              size="large"
+            >
+              Test Supabase Connection
+            </Button>
+          </Box>
+
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold', color: 'error.dark' }}>
+            Debug Sharing Setup
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Enter an email address to debug sharing permissions and setup.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <Input
+              value={debugEmail}
+              onChange={(e) => setDebugEmail(e.target.value)}
+              placeholder="Enter email to debug..."
+              sx={{ flex: 1 }}
+            />
+            <Button
+              onClick={() => debugSharingSetup(debugEmail)}
+              variant="outlined"
+              color="error"
+              startIcon={<DebugIcon />}
+              disabled={!debugEmail.trim()}
+            >
+              Debug Sharing
+            </Button>
+          </Box>
         </CardContent>
       </Card>
     </Box>

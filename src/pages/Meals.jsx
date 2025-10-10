@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating } from '@mui/material';
-import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon, Schedule as ScheduleIcon, Restaurant as RestaurantIcon } from '@mui/icons-material';
+import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating, Autocomplete, Avatar, Divider } from '@mui/material';
+import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon, Schedule as ScheduleIcon, Restaurant as RestaurantIcon, Link as LinkIcon, LocalOffer as TagIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
 import { getMeals, saveMeal, deleteMeal, initDB } from '../services/mealsService';
 
@@ -12,10 +12,19 @@ function Meals() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     loadMeals();
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  const checkScreenSize = () => {
+    setIsMobile(window.innerWidth <= 768);
+  };
 
   const loadMeals = async () => {
     try {
@@ -63,12 +72,21 @@ function Meals() {
     setEditingMeal(null);
   };
 
+  // Get all unique tags for the autocomplete
+  const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
+
   const filteredAndSortedMeals = meals
     .filter(meal => {
       const searchLower = searchTerm.toLowerCase();
       const titleMatch = meal.title?.toLowerCase().includes(searchLower) || false;
       const descriptionMatch = meal.description?.toLowerCase().includes(searchLower) || false;
-      return titleMatch || descriptionMatch;
+      const searchMatch = titleMatch || descriptionMatch;
+
+      // Tag filtering
+      const tagMatch = selectedTags.length === 0 ||
+        selectedTags.every(tag => meal.tags?.includes(tag));
+
+      return searchMatch && tagMatch;
     })
     .sort((a, b) => {
       if (!sortField) return 0;
@@ -117,6 +135,11 @@ function Meals() {
     setSearchTerm('');
   };
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedTags([]);
+  };
+
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -148,6 +171,164 @@ function Meals() {
           ({rating}/5)
         </Typography>
       </Box>
+    );
+  };
+
+  const MealCard = ({ meal }) => {
+    return (
+      <Card sx={{ mb: 2 }}>
+        <CardContent sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {/* Meal Image */}
+            {meal.image ? (
+              <Avatar
+                src={meal.image}
+                alt={meal.title}
+                sx={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 1
+                }}
+                variant="rounded"
+              />
+            ) : (
+              <Avatar
+                sx={{
+                  width: 60,
+                  height: 60,
+                  bgcolor: 'grey.100',
+                  borderRadius: 1,
+                  fontSize: '20px'
+                }}
+                variant="rounded"
+              >
+                🥘
+              </Avatar>
+            )}
+
+            {/* Meal Info */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              {/* Title and Version Count */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                    {meal.title}
+                  </Typography>
+                  {meal.versions && meal.versions.length > 0 && (
+                    <Typography variant="caption" color="text.secondary">
+                      {meal.versions.length} version{meal.versions.length !== 1 ? 's' : ''}
+                    </Typography>
+                  )}
+                </Box>
+
+                {/* Action Buttons */}
+                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                  <IconButton
+                    onClick={() => handleEditMeal(meal)}
+                    color="primary"
+                    size="small"
+                    title="Edit meal"
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handleDeleteMeal(meal.id)}
+                    color="error"
+                    size="small"
+                    title="Delete meal"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Box>
+
+              {/* Rating */}
+              <Box sx={{ mb: 1 }}>
+                {renderStars(meal.rating)}
+              </Box>
+
+              {/* Description */}
+              {meal.description && (
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {meal.description.length > 100 ?
+                    meal.description.substring(0, 100) + '...' :
+                    meal.description}
+                </Typography>
+              )}
+
+              {/* Stats Row */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 1, flexWrap: 'wrap' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Fridge/Freezer:
+                  </Typography>
+                  <Typography variant="caption">
+                    {meal.freezerPortions}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <RestaurantIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                  <Typography variant="caption">
+                    {meal.eatenCount || 0} times
+                  </Typography>
+                </Box>
+
+                {meal.lastEaten && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <ScheduleIcon sx={{ fontSize: 12, color: 'text.secondary' }} />
+                    <Typography variant="caption">
+                      {new Date(meal.lastEaten).toLocaleDateString()}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Web Link */}
+              {meal.recipeUrl && (
+                <Box sx={{ mb: 1 }}>
+                  <Typography
+                    component="a"
+                    href={meal.recipeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="body2"
+                    sx={{
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                  >
+                    <LinkIcon fontSize="small" />
+                    web link
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Tags */}
+              {meal.tags && meal.tags.length > 0 && (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {meal.tags.map((tag, index) => (
+                    <Chip
+                      key={index}
+                      label={tag}
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      sx={{ fontSize: '0.7rem', height: 20 }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -206,20 +387,54 @@ function Meals() {
                 }}
               />
 
+              <Autocomplete
+                multiple
+                options={allTags}
+                value={selectedTags}
+                onChange={(event, newValue) => setSelectedTags(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Filter by tags..."
+                    size="medium"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <TagIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+                renderTags={(value, getTagProps) =>
+                  value.map((option, index) => (
+                    <Chip
+                      variant="outlined"
+                      label={option}
+                      {...getTagProps({ index })}
+                      key={option}
+                    />
+                  ))
+                }
+                sx={{ width: 300, maxWidth: '100%' }}
+              />
+
               <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 2,
                 flexWrap: 'wrap'
               }}>
-                {searchTerm && (
+                {(searchTerm || selectedTags.length > 0) && (
                   <Button
-                    onClick={clearSearch}
+                    onClick={clearFilters}
                     variant="outlined"
                     startIcon={<ClearIcon />}
                     color="inherit"
                   >
-                    Clear
+                    Clear Filters
                   </Button>
                 )}
 
@@ -228,7 +443,7 @@ function Meals() {
                   color="text.secondary"
                   sx={{ fontWeight: 500, whiteSpace: 'nowrap' }}
                 >
-                  {searchTerm ? (
+                  {(searchTerm || selectedTags.length > 0) ? (
                     `${filteredAndSortedMeals.length} of ${meals.length} meals`
                   ) : (
                     `${meals.length} total meals`
@@ -259,26 +474,34 @@ function Meals() {
             </Button>
           </CardContent>
         </Card>
-      ) : filteredAndSortedMeals.length === 0 && searchTerm ? (
+      ) : filteredAndSortedMeals.length === 0 && (searchTerm || selectedTags.length > 0) ? (
         <Card sx={{ textAlign: 'center', py: 6, border: '2px solid', borderColor: 'warning.main', bgcolor: 'warning.light' }}>
           <CardContent>
             <Typography variant="h6" color="warning.dark" sx={{ mb: 1 }}>
               No meals found
             </Typography>
             <Typography variant="body1" color="warning.dark" sx={{ mb: 3 }}>
-              No meals match your search for "{searchTerm}"
+              No meals match your current filters
             </Typography>
             <Button
-              onClick={clearSearch}
+              onClick={clearFilters}
               variant="contained"
               color="warning"
               startIcon={<ClearIcon />}
             >
-              Clear Search
+              Clear Filters
             </Button>
           </CardContent>
         </Card>
+      ) : isMobile ? (
+        // Mobile Card View
+        <Box>
+          {filteredAndSortedMeals.map((meal) => (
+            <MealCard key={meal.id} meal={meal} />
+          ))}
+        </Box>
       ) : (
+        // Desktop Table View
         <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
@@ -342,7 +565,7 @@ function Meals() {
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                      Freezer Portions
+                      Fridge/Freezer Portions
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {getSortIcon('freezerPortions')}
@@ -426,9 +649,16 @@ function Meals() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                      {meal.title}
-                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        {meal.title}
+                      </Typography>
+                      {meal.versions && meal.versions.length > 0 && (
+                        <Typography variant="caption" color="text.secondary">
+                          {meal.versions.length} version{meal.versions.length !== 1 ? 's' : ''}
+                        </Typography>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 300 }}>
                     {meal.description ? (
@@ -442,17 +672,52 @@ function Meals() {
                         No description
                       </Typography>
                     )}
+                    {meal.recipeUrl && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography
+                          component="a"
+                          href={meal.recipeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="body2"
+                          sx={{
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            '&:hover': {
+                              textDecoration: 'underline'
+                            }
+                          }}
+                        >
+                          <LinkIcon fontSize="small" />
+                          web link
+                        </Typography>
+                      </Box>
+                    )}
+                    {meal.tags && meal.tags.length > 0 && (
+                      <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {meal.tags.map((tag, index) => (
+                          <Chip
+                            key={index}
+                            label={tag}
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            sx={{ fontSize: '0.7rem', height: 20 }}
+                          />
+                        ))}
+                      </Box>
+                    )}
                   </TableCell>
                   <TableCell>
                     {renderStars(meal.rating)}
                   </TableCell>
                   <TableCell align="center">
-                    <Chip
-                      label={meal.freezerPortions}
-                      color={meal.freezerPortions > 0 ? 'success' : 'error'}
-                      variant="filled"
-                      size="small"
-                    />
+                    <Typography variant="body2">
+                      {meal.freezerPortions}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     {meal.lastEaten ? (
@@ -486,24 +751,34 @@ function Meals() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
+                      <IconButton
                         onClick={() => handleEditMeal(meal)}
-                        variant="contained"
-                        color="secondary"
+                        color="primary"
                         size="small"
-                        startIcon={<EditIcon />}
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'primary.light',
+                            color: 'primary.dark'
+                          }
+                        }}
+                        title="Edit meal"
                       >
-                        Edit
-                      </Button>
-                      <Button
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
                         onClick={() => handleDeleteMeal(meal.id)}
-                        variant="contained"
                         color="error"
                         size="small"
-                        startIcon={<DeleteIcon />}
+                        sx={{
+                          '&:hover': {
+                            backgroundColor: 'error.light',
+                            color: 'error.dark'
+                          }
+                        }}
+                        title="Delete meal"
                       >
-                        Delete
-                      </Button>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </Box>
                   </TableCell>
                 </TableRow>

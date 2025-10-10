@@ -50,7 +50,9 @@ export async function getMeals(sortBy = 'created_at', sortOrder = 'desc') {
       ...meal,
       freezerPortions: meal.freezer_portions || 0,
       lastEaten: meal.last_eaten,
-      eatenCount: meal.eaten_count || 0
+      eatenCount: meal.eaten_count || 0,
+      recipeUrl: meal.recipe_url,
+      tags: meal.tags || []
     }));
 
     console.log('Loaded meals with tracking data:', meals.length, 'meals');
@@ -78,6 +80,8 @@ export async function saveMeal(meal) {
       rating: meal.rating ? Number(meal.rating) : null,
       freezer_portions: Number(meal.freezerPortions || 0),
       versions: meal.versions || [],
+      recipe_url: meal.recipeUrl || null,
+      tags: meal.tags || [],
       updated_at: new Date().toISOString()
     };
 
@@ -129,9 +133,12 @@ export async function saveMeal(meal) {
       result.freezerPortions = result.freezer_portions;
       result.lastEaten = result.last_eaten;
       result.eatenCount = result.eaten_count || 0;
+      result.recipeUrl = result.recipe_url;
+      result.tags = result.tags || [];
       delete result.freezer_portions;
       delete result.last_eaten;
       delete result.eaten_count;
+      delete result.recipe_url;
     }
 
     return result;
@@ -171,9 +178,12 @@ export async function markMealAsEaten(mealId) {
       data.freezerPortions = data.freezer_portions;
       data.lastEaten = data.last_eaten;
       data.eatenCount = data.eaten_count || 0;
+      data.recipeUrl = data.recipe_url;
+      data.tags = data.tags || [];
       delete data.freezer_portions;
       delete data.last_eaten;
       delete data.eaten_count;
+      delete data.recipe_url;
     }
 
     return data;
@@ -221,9 +231,12 @@ export async function getMealById(mealId) {
       data.freezerPortions = data.freezer_portions;
       data.lastEaten = data.last_eaten;
       data.eatenCount = data.eaten_count || 0;
+      data.recipeUrl = data.recipe_url;
+      data.tags = data.tags || [];
       delete data.freezer_portions;
       delete data.last_eaten;
       delete data.eaten_count;
+      delete data.recipe_url;
     }
 
     return data;

@@ -19,6 +19,7 @@ import {
   Devices as DevicesIcon
 } from '@mui/icons-material';
 import AuthModal from './AuthModal';
+import PWAInstallPrompt from './PWAInstallPrompt';
 
 function LandingPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -185,6 +186,8 @@ function LandingPage() {
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
       />
+
+      <PWAInstallPrompt />
     </Box>
   );
 }

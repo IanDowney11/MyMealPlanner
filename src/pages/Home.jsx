@@ -171,7 +171,7 @@ function Home() {
 
                 {todaysPlannedMeal.freezerPortions > 0 && (
                   <Chip
-                    label={`${todaysPlannedMeal.freezerPortions} ${todaysPlannedMeal.freezerPortions === 1 ? 'portion' : 'portions'} in freezer`}
+                    label={`${todaysPlannedMeal.freezerPortions} ${todaysPlannedMeal.freezerPortions === 1 ? 'portion' : 'portions'} in fridge/freezer`}
                     color="success"
                     variant="filled"
                     size="small"
