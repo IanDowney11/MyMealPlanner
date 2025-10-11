@@ -16,7 +16,11 @@ import {
   ShoppingCart as ShoppingCartIcon,
   Sync as SyncIcon,
   Security as SecurityIcon,
-  Devices as DevicesIcon
+  Devices as DevicesIcon,
+  Share as ShareIcon,
+  LocalDining as SnackIcon,
+  Api as ApiIcon,
+  CloudSync as CloudIcon
 } from '@mui/icons-material';
 import AuthModal from './AuthModal';
 import PWAInstallPrompt from './PWAInstallPrompt';
@@ -27,33 +31,33 @@ function LandingPage() {
   const features = [
     {
       icon: <RestaurantIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Meal Management',
-      description: 'Add, rate, and organize your favorite recipes with ease'
+      title: 'Recipe Management',
+      description: 'Add, rate, and organize recipes with images, tags, versions, and external API integration (10,000+ Spoonacular recipes)'
     },
     {
       icon: <CalendarIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Weekly Planning',
-      description: 'Drag and drop meals to plan your entire week in minutes'
+      title: 'Smart Planning',
+      description: 'Drag-and-drop weekly calendar with meal tracking, cooking frequency, and event scheduling'
     },
     {
       icon: <ShoppingCartIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Shopping Lists',
-      description: 'Generate shopping lists based on your meal plans'
+      title: 'Shopping & Sharing',
+      description: 'Create lists, share between users with permissions, and track completion status'
     },
     {
       icon: <SyncIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Cloud Sync',
-      description: 'Your data syncs across all your devices automatically'
+      title: 'Cloud Sync & API',
+      description: 'Real-time sync across devices plus REST API for Home Assistant integration'
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
       title: 'Secure & Private',
-      description: 'Your meal data is encrypted and only accessible to you'
+      description: 'Row Level Security, encrypted storage, no data collection - your data stays yours'
     },
     {
       icon: <DevicesIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Works Everywhere',
-      description: 'Use on desktop, tablet, or mobile - install as a PWA'
+      title: 'Progressive Web App',
+      description: 'Install on any device, works offline, responsive design with Material-UI'
     }
   ];
 
@@ -81,10 +85,11 @@ function LandingPage() {
           <Typography variant="h5" sx={{
             mb: 4,
             color: 'grey.300',
-            maxWidth: 600,
+            maxWidth: 700,
             mx: 'auto'
           }}>
-            The ultimate tool for planning your weekly meals, managing recipes, and staying organized in the kitchen.
+            The complete meal planning solution with recipe management, smart weekly planning,
+            shopping lists, snack discovery, external recipe integration, and Home Assistant API support.
           </Typography>
 
 
@@ -110,6 +115,14 @@ function LandingPage() {
 
         {/* Features Grid */}
         <Box sx={{ mb: 8 }}>
+          <Typography variant="h4" sx={{
+            textAlign: 'center',
+            mb: 4,
+            fontWeight: 'bold',
+            color: 'white'
+          }}>
+            Everything You Need for Meal Planning
+          </Typography>
 
           <Box sx={{
             display: 'grid',
@@ -137,6 +150,64 @@ function LandingPage() {
               </Card>
             ))}
           </Box>
+        </Box>
+
+        {/* Additional Features Highlight */}
+        <Box sx={{ mb: 8 }}>
+          <Paper sx={{
+            p: 4,
+            bgcolor: 'rgba(33, 150, 243, 0.1)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(33, 150, 243, 0.3)',
+            textAlign: 'center'
+          }}>
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'white' }}>
+              Advanced Features You'll Love
+            </Typography>
+
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+              gap: 3,
+              mb: 3
+            }}>
+              <Box>
+                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                  🍽️ Snack Discovery
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                  Dedicated snack management with random selection for when you need inspiration
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                  📊 Meal Tracking
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                  Track cooking frequency and last cooked dates to discover your favorites
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                  🔗 External Integration
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                  Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                  👥 Smart Sharing
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                  Permission-based shopping list sharing between family members
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
         </Box>
 
         {/* Disclaimer Section */}
