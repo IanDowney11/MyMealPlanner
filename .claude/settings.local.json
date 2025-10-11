@@ -5,7 +5,14 @@
       "Bash(npm run dev:*)",
       "Bash(curl:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm run server:*)",
+      "Bash(copy .env.local .env)",
+      "Bash(node:*)",
+      "Bash(pkill:*)",
+      "Bash(taskkill:*)",
+      "Bash(del:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

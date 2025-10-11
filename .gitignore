@@ -19,6 +19,7 @@ build
 #Local env files / secrets
 .env
 .env.*
+!.env.example
 
 #Package tarballs
 *.tgz
