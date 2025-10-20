@@ -9,7 +9,6 @@ import {
   Box,
   CircularProgress,
   Chip,
-  Avatar,
   Divider,
   Rating,
   Badge,
@@ -19,7 +18,8 @@ import {
   ListItemIcon,
   ListItemText,
   TextField,
-  Autocomplete
+  Autocomplete,
+  Skeleton
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -39,6 +39,7 @@ import {
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
 import MealAssignmentModal from '../components/MealAssignmentModal';
+import ProgressiveImage from '../components/ProgressiveImage';
 import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans, copyLastWeekMealPlans } from '../services/mealsService';
 import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsService';
 import EventModal from '../components/EventModal';
@@ -451,31 +452,15 @@ function MealPlannerContent() {
     return (
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          {meal.image ? (
-            <Avatar
-              src={meal.image}
-              alt={meal.title}
-              sx={{
-                width: 50,
-                height: 50,
-                borderRadius: 1
-              }}
-              variant="rounded"
-            />
-          ) : (
-            <Avatar
-              sx={{
-                width: 50,
-                height: 50,
-                bgcolor: 'grey.100',
-                borderRadius: 1,
-                fontSize: '20px'
-              }}
-              variant="rounded"
-            >
-              🥘
-            </Avatar>
-          )}
+          <ProgressiveImage
+            src={meal.image}
+            alt={meal.title}
+            width={50}
+            height={50}
+            variant="rounded"
+            fallbackIcon="🥘"
+            lazy={true}
+          />
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: meal.selectedVersion ? 0.25 : 0.5 }}>
@@ -777,11 +762,93 @@ function MealPlannerContent() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '50vh', gap: 2 }}>
-        <CircularProgress color="primary" size={40} />
-        <Typography variant="h6" color="text.secondary">
-          Loading meal planner...
-        </Typography>
+      <Box sx={{
+        display: 'flex',
+        height: 'calc(100vh - 64px)',
+        bgcolor: 'background.default'
+      }}>
+        {/* Sidebar Skeleton */}
+        <Paper
+          elevation={0}
+          sx={{
+            width: 320,
+            borderRight: 1,
+            borderColor: 'divider',
+            p: 2.5,
+            pt: 4,
+            display: isMobile ? 'none' : 'block'
+          }}
+        >
+          <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2.5 }} />
+          <Skeleton variant="rounded" width="100%" height={44} sx={{ mb: 2 }} />
+          {[1, 2, 3, 4, 5].map(i => (
+            <Card key={i} sx={{ mb: 1.5 }}>
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Skeleton variant="rounded" width={50} height={50} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="80%" height={24} />
+                    <Skeleton variant="text" width="60%" height={20} sx={{ mt: 0.5 }} />
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Paper>
+
+        {/* Main Content Skeleton */}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Header Skeleton */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2.5,
+              borderBottom: 1,
+              borderColor: 'divider',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2
+            }}
+          >
+            <Skeleton variant="circular" width={40} height={40} />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Skeleton variant="rounded" width={100} height={36} />
+              <Skeleton variant="rounded" width={120} height={36} />
+              <Skeleton variant="rounded" width={100} height={36} />
+            </Box>
+            <Skeleton variant="text" width={120} height={24} />
+          </Paper>
+
+          {/* Calendar Grid Skeleton */}
+          <Box sx={{ flex: 1, p: 2.5, overflowY: 'auto' }}>
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 2.5,
+              maxWidth: 1400,
+              margin: '0 auto'
+            }}>
+              {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                <Paper key={i} elevation={1} sx={{ p: 2, minHeight: 200 }}>
+                  <Skeleton variant="text" width="70%" height={28} sx={{ mb: 2, mx: 'auto' }} />
+                  <Skeleton variant="text" width="40%" height={20} sx={{ mb: 1.5, mx: 'auto' }} />
+                  <Card>
+                    <CardContent sx={{ p: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Skeleton variant="rounded" width={50} height={50} />
+                        <Box sx={{ flex: 1 }}>
+                          <Skeleton variant="text" width="80%" height={24} />
+                          <Skeleton variant="text" width="60%" height={20} sx={{ mt: 0.5 }} />
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Paper>
+              ))}
+            </Box>
+          </Box>
+        </Box>
       </Box>
     );
   }
@@ -857,6 +924,7 @@ function MealPlannerContent() {
                   options={allTags}
                   value={selectedTags}
                   onChange={(event, newValue) => setSelectedTags(newValue)}
+                  size="small"
                   renderInput={(params) => (
                     <TextField
                       {...params}
@@ -864,9 +932,13 @@ function MealPlannerContent() {
                       size="small"
                       InputProps={{
                         ...params.InputProps,
+                        sx: {
+                          minHeight: 44, // Better touch target
+                          ...params.InputProps.sx
+                        },
                         startAdornment: (
                           <>
-                            <TagIcon sx={{ color: 'text.secondary', mr: 1, fontSize: 16 }} />
+                            <TagIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }} />
                             {params.InputProps.startAdornment}
                           </>
                         )
@@ -881,17 +953,39 @@ function MealPlannerContent() {
                         size="small"
                         {...getTagProps({ index })}
                         key={option}
-                        sx={{ fontSize: '0.7rem', height: 20 }}
+                        sx={{
+                          fontSize: '0.75rem',
+                          height: { xs: 24, sm: 20 }, // Larger on mobile
+                          m: 0.25,
+                          '& .MuiChip-deleteIcon': {
+                            fontSize: { xs: 18, sm: 16 }, // Larger delete icon on mobile
+                            m: 0.5
+                          }
+                        }}
                       />
                     ))
                   }
+                  componentsProps={{
+                    paper: {
+                      sx: {
+                        '& .MuiAutocomplete-option': {
+                          minHeight: 44, // Better touch targets in dropdown
+                          px: 2
+                        }
+                      }
+                    }
+                  }}
                 />
                 {selectedTags.length > 0 && (
                   <Button
                     onClick={() => setSelectedTags([])}
                     size="small"
                     startIcon={<ClearIcon />}
-                    sx={{ mt: 1, fontSize: '0.7rem' }}
+                    sx={{
+                      mt: 1,
+                      fontSize: '0.75rem',
+                      minHeight: { xs: 36, sm: 32 } // Better touch target on mobile
+                    }}
                   >
                     Clear Tags
                   </Button>
@@ -976,40 +1070,47 @@ function MealPlannerContent() {
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: 1.5,
-            flexWrap: 'wrap'
+            gap: { xs: 1, sm: 1.5 },
+            flexWrap: 'wrap',
+            justifyContent: { xs: 'center', sm: 'flex-start' }
           }}>
             <Button
               onClick={goToLastWeek}
               variant="outlined"
-              startIcon={<ArrowBackIcon />}
+              startIcon={isMobile ? null : <ArrowBackIcon />}
               color="inherit"
+              size={isMobile ? "small" : "medium"}
+              sx={{ minWidth: { xs: 'auto', sm: 'unset' } }}
             >
-              Last Week
+              {isMobile ? <ArrowBackIcon /> : 'Last Week'}
             </Button>
 
             <Chip
               label={`📅 ${getWeekDisplayText()}`}
               color={selectedWeekOffset === 0 ? "primary" : "default"}
               onClick={selectedWeekOffset !== 0 ? goToCurrentWeek : undefined}
+              size={isMobile ? "small" : "medium"}
               sx={{
-                minWidth: 120,
+                minWidth: { xs: 100, sm: 120 },
                 fontWeight: 'bold',
-                cursor: selectedWeekOffset !== 0 ? 'pointer' : 'default'
+                cursor: selectedWeekOffset !== 0 ? 'pointer' : 'default',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
               }}
             />
 
             <Button
               onClick={goToNextWeek}
               variant="outlined"
-              endIcon={<ArrowForwardIcon />}
+              endIcon={isMobile ? null : <ArrowForwardIcon />}
               color="inherit"
+              size={isMobile ? "small" : "medium"}
+              sx={{ minWidth: { xs: 'auto', sm: 'unset' } }}
             >
-              Next Week
+              {isMobile ? <ArrowForwardIcon /> : 'Next Week'}
             </Button>
 
-            {/* Copy Last Week Button - only show for current week */}
-            {selectedWeekOffset === 0 && (
+            {/* Copy Last Week Button - hide on mobile, show on desktop when on current week */}
+            {selectedWeekOffset === 0 && !isMobile && (
               <Button
                 onClick={handleCopyLastWeek}
                 variant="contained"
