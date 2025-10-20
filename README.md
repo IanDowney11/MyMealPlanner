@@ -112,7 +112,7 @@ The application includes a built-in REST API server for external integrations:
 - `GET /api/debug/mealplans?userId=USER_ID` - Debug meal plans
 
 ### Home Assistant Integration
-Perfect for smart home integration. See `API_DOCUMENTATION.md` for complete setup instructions.
+Perfect for smart home integration. See `docs/API_DOCUMENTATION.md` for complete setup instructions.
 
 ## 📦 Deployment
 
@@ -152,10 +152,20 @@ This is an open-source project. Contributions, issues, and feature requests are 
 
 This project is provided as-is for personal use. No rights reserved - use, modify, and distribute freely.
 
+## 📚 Documentation
+
+- **API Documentation**: `docs/API_DOCUMENTATION.md` - Complete API reference and Home Assistant integration
+- **Database Schema**: `database-schema.sql` - Database structure and setup
+- **Supabase Setup**: `docs/supabase-setup-guide.md` - Step-by-step Supabase configuration
+- **Shopping List Sharing**: `docs/SHOPPING_LIST_SHARING.md` - Sharing system documentation
+- **PWA Testing**: `docs/pwa-test-instructions.md` - Progressive Web App testing guide
+- **Mobile Improvements**: `docs/IMPROVEMENTS-APPLIED.md` - Recent mobile UX enhancements
+- **Test Scripts**: `docs/test-scripts/` - Comprehensive mobile testing procedures
+
 ## 🆘 Support
 
-- Check the `API_DOCUMENTATION.md` for API details
-- Review the `database-schema.sql` for database structure
+- Review the documentation in the `docs/` folder
+- Check the `database-schema.sql` for database structure
 - Open an issue for bugs or feature requests
 
 ---
