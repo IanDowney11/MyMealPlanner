@@ -33,7 +33,8 @@ import {
   MoreVert as MoreVertIcon,
   ContentCopy as CopyIcon,
   LocalOffer as TagIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Link as LinkIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
@@ -477,18 +478,41 @@ function MealPlannerContent() {
           )}
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontWeight: 'bold',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                mb: meal.selectedVersion ? 0.25 : 0.5
-              }}
-            >
-              {meal.title}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: meal.selectedVersion ? 0.25 : 0.5 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 'bold',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1
+                }}
+              >
+                {meal.title}
+              </Typography>
+              {meal.recipeUrl && (
+                <Tooltip title="Open recipe">
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(meal.recipeUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    sx={{
+                      p: 0.5,
+                      color: 'primary.main',
+                      '&:hover': {
+                        bgcolor: 'primary.main',
+                        color: 'white'
+                      }
+                    }}
+                  >
+                    <LinkIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
             {meal.versions && meal.versions.length > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
                 {meal.versions.length} version{meal.versions.length !== 1 ? 's' : ''}
@@ -939,7 +963,9 @@ function MealPlannerContent() {
               color="primary"
               sx={{
                 border: 1,
-                borderColor: 'divider'
+                borderColor: 'divider',
+                // Add margin on mobile to prevent overlap with main nav burger
+                ...(isMobile && { ml: 6 })
               }}
             >
               <MenuIcon />

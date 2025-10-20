@@ -250,6 +250,29 @@ function ShoppingList() {
     }
   };
 
+  const handleRemoveCheckedItems = async () => {
+    if (!shoppingList) return;
+
+    const checkedItemsCount = completedItems.length;
+    if (checkedItemsCount === 0) {
+      alert('No checked items to remove.');
+      return;
+    }
+
+    if (window.confirm(`Remove ${checkedItemsCount} checked item${checkedItemsCount !== 1 ? 's' : ''} from the list?`)) {
+      try {
+        // Delete all completed items
+        await Promise.all(
+          completedItems.map(item => deleteShoppingListItem(item.id))
+        );
+        await loadData();
+      } catch (error) {
+        console.error('Error removing checked items:', error);
+        alert('Error removing checked items. Please try again.');
+      }
+    }
+  };
+
   const handleFrequentKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleAddFrequentItem();
@@ -364,6 +387,24 @@ function ShoppingList() {
                     }}
                   >
                     Share
+                  </Button>
+                  <Button
+                    onClick={handleRemoveCheckedItems}
+                    variant="contained"
+                    color="inherit"
+                    startIcon={<ClearIcon />}
+                    size="small"
+                    disabled={completedItems.length === 0}
+                    sx={{
+                      bgcolor: 'rgba(255,255,255,0.2)',
+                      '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                      '&.Mui-disabled': {
+                        bgcolor: 'rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.3)'
+                      }
+                    }}
+                  >
+                    Clear Checked
                   </Button>
                   <Button
                     onClick={handleCompleteShoppingList}

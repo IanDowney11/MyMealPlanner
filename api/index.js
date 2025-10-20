@@ -17,16 +17,24 @@ const supabase = createClient(
 app.use(cors());
 app.use(express.json());
 
-// Helper function to get today's date in YYYY-MM-DD format
-function getTodayDate() {
-  return new Date().toISOString().split('T')[0];
+// Helper function to format date in local timezone to YYYY-MM-DD format
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-// Helper function to get tomorrow's date in YYYY-MM-DD format
+// Helper function to get today's date in YYYY-MM-DD format (in local timezone)
+function getTodayDate() {
+  return formatLocalDate(new Date());
+}
+
+// Helper function to get tomorrow's date in YYYY-MM-DD format (in local timezone)
 function getTomorrowDate() {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
+  return formatLocalDate(tomorrow);
 }
 
 // Helper function to format meal response
