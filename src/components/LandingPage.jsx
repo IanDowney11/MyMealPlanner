@@ -66,8 +66,7 @@ function LandingPage() {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #2980b9 100%)',
-      color: 'white',
+      bgcolor: 'white',
       py: 4
     }}>
       <Container maxWidth="lg">
@@ -76,7 +75,7 @@ function LandingPage() {
           <Typography variant="h2" component="h1" sx={{
             fontWeight: 'bold',
             mb: 2,
-            background: 'linear-gradient(45deg, #fff, #e3f2fd)',
+            background: 'linear-gradient(45deg, #2c3e50, #3498db)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent'
@@ -86,7 +85,7 @@ function LandingPage() {
 
           <Typography variant="h5" sx={{
             mb: 4,
-            color: 'grey.300',
+            color: 'grey.700',
             maxWidth: 700,
             mx: 'auto'
           }}>
@@ -123,7 +122,7 @@ function LandingPage() {
             textAlign: 'center',
             mb: 4,
             fontWeight: 'bold',
-            color: 'white'
+            color: 'grey.900'
           }}>
             Everything You Need for Meal Planning
           </Typography>
@@ -135,19 +134,19 @@ function LandingPage() {
           }}>
             {features.map((feature, index) => (
               <Card key={index} sx={{
-                bgcolor: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: 'white'
+                bgcolor: 'grey.50',
+                border: '1px solid',
+                borderColor: 'grey.200',
+                boxShadow: 1
               }}>
                 <CardContent sx={{ textAlign: 'center', p: 3 }}>
                   <Box sx={{ mb: 2 }}>
                     {feature.icon}
                   </Box>
-                  <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold', color: 'grey.900' }}>
                     {feature.title}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
                     {feature.description}
                   </Typography>
                 </CardContent>
@@ -160,12 +159,13 @@ function LandingPage() {
         <Box sx={{ mb: 8 }}>
           <Paper sx={{
             p: 4,
-            bgcolor: 'rgba(255, 255, 255, 0.15)',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
+            bgcolor: 'grey.50',
+            border: '1px solid',
+            borderColor: 'grey.200',
+            boxShadow: 1,
             textAlign: 'center'
           }}>
-            <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'white' }}>
+            <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'grey.900' }}>
               Advanced Features You'll Love
             </Typography>
 
@@ -176,48 +176,48 @@ function LandingPage() {
               mb: 3
             }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <SnackIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <SnackIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
-                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
                     Snack Discovery
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
                     Dedicated snack management with random selection for when you need inspiration
                   </Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <TrackingIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <TrackingIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
-                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
                     Meal Tracking
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
                     Track cooking frequency and last cooked dates to discover your favorites
                   </Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <ApiIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <ApiIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
-                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
                     External Integration
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
                     Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
                   </Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <ShareIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <ShareIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
-                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
                     Smart Sharing
                   </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  <Typography variant="body2" sx={{ color: 'grey.700' }}>
                     Permission-based shopping list sharing between family members
                   </Typography>
                 </Box>
@@ -229,23 +229,24 @@ function LandingPage() {
         {/* Disclaimer Section */}
         <Paper sx={{
           p: 4,
-          bgcolor: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          bgcolor: 'grey.50',
+          border: '1px solid',
+          borderColor: 'grey.200',
+          boxShadow: 1,
           textAlign: 'center',
           mb: 4
         }}>
-          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'white' }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'grey.900' }}>
             Free & Open Source
           </Typography>
 
-          <Typography variant="body1" sx={{ mb: 2, color: 'grey.300' }}>
+          <Typography variant="body1" sx={{ mb: 2, color: 'grey.700' }}>
             This application is provided as-is for your personal use. We take no responsibility
             for any issues that may arise from its use. Your data is yours - we don't collect
             or sell anything.
           </Typography>
 
-          <Typography variant="body1" sx={{ mb: 3, color: 'grey.300' }}>
+          <Typography variant="body1" sx={{ mb: 3, color: 'grey.700' }}>
             <strong>No Rights Reserved</strong> - Fork, modify, and contribute as you wish.
           </Typography>
 
@@ -254,15 +255,15 @@ function LandingPage() {
               variant="outlined"
               onClick={() => setAuthModalOpen(true)}
               sx={{
-                borderColor: 'white',
-                color: 'white',
+                borderColor: '#2ecc71',
+                color: '#2ecc71',
                 borderWidth: 2,
                 px: 3,
                 py: 1,
                 '&:hover': {
-                  borderColor: '#2ecc71',
-                  color: '#2ecc71',
-                  bgcolor: 'rgba(46, 204, 113, 0.1)',
+                  borderColor: '#27ae60',
+                  color: '#27ae60',
+                  bgcolor: 'rgba(46, 204, 113, 0.05)',
                   borderWidth: 2,
                   transform: 'translateY(-2px)'
                 },
@@ -279,14 +280,15 @@ function LandingPage() {
               rel="noopener noreferrer"
               startIcon={<GitHubIcon />}
               sx={{
-                borderColor: 'white',
-                color: 'white',
+                borderColor: 'grey.800',
+                color: 'grey.800',
                 borderWidth: 2,
                 px: 3,
                 py: 1,
                 '&:hover': {
-                  borderColor: 'white',
-                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'grey.900',
+                  color: 'grey.900',
+                  bgcolor: 'rgba(0, 0, 0, 0.05)',
                   borderWidth: 2,
                   transform: 'translateY(-2px)'
                 },
