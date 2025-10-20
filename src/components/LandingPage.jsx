@@ -30,32 +30,32 @@ function LandingPage() {
 
   const features = [
     {
-      icon: <RestaurantIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
-      title: 'Recipe Management',
+      icon: <RestaurantIcon sx={{ fontSize: 40, color: '#ff6b6b' }} />,
+      title: 'Meal Management',
       description: 'Add, rate, and organize recipes with images, tags, versions, and external API integration (10,000+ Spoonacular recipes)'
     },
     {
-      icon: <CalendarIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+      icon: <CalendarIcon sx={{ fontSize: 40, color: '#4ecdc4' }} />,
       title: 'Smart Planning',
       description: 'Drag-and-drop weekly calendar with meal tracking, cooking frequency, and event scheduling'
     },
     {
-      icon: <ShoppingCartIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+      icon: <ShoppingCartIcon sx={{ fontSize: 40, color: '#95e1d3' }} />,
       title: 'Shopping & Sharing',
       description: 'Create lists, share between users with permissions, and track completion status'
     },
     {
-      icon: <SyncIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+      icon: <SyncIcon sx={{ fontSize: 40, color: '#f38181' }} />,
       title: 'Cloud Sync & API',
       description: 'Real-time sync across devices plus REST API for Home Assistant integration'
     },
     {
-      icon: <SecurityIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+      icon: <SecurityIcon sx={{ fontSize: 40, color: '#feca57' }} />,
       title: 'Secure & Private',
       description: 'Row Level Security, encrypted storage, no data collection - your data stays yours'
     },
     {
-      icon: <DevicesIcon sx={{ fontSize: 40, color: 'primary.main' }} />,
+      icon: <DevicesIcon sx={{ fontSize: 40, color: '#a29bfe' }} />,
       title: 'Progressive Web App',
       description: 'Install on any device, works offline, responsive design with Material-UI'
     }
@@ -64,7 +64,7 @@ function LandingPage() {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #1a1d29 0%, #2d3142 100%)',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
       color: 'white',
       py: 4
     }}>
@@ -101,12 +101,14 @@ function LandingPage() {
               px: 4,
               py: 1.5,
               fontSize: '1.1rem',
-              background: 'linear-gradient(45deg, #2196f3, #21cbf3)',
-              boxShadow: '0 4px 20px rgba(33, 150, 243, 0.3)',
+              background: 'linear-gradient(45deg, #ff6b6b, #f38181)',
+              boxShadow: '0 4px 20px rgba(255, 107, 107, 0.4)',
               '&:hover': {
-                background: 'linear-gradient(45deg, #1976d2, #0288d1)',
-                boxShadow: '0 6px 25px rgba(33, 150, 243, 0.4)'
-              }
+                background: 'linear-gradient(45deg, #ee5a6f, #f06595)',
+                boxShadow: '0 6px 25px rgba(255, 107, 107, 0.5)',
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.3s ease'
             }}
           >
             Get Started - Sign Up / Sign In
@@ -156,9 +158,9 @@ function LandingPage() {
         <Box sx={{ mb: 8 }}>
           <Paper sx={{
             p: 4,
-            bgcolor: 'rgba(33, 150, 243, 0.1)',
+            bgcolor: 'rgba(255, 255, 255, 0.15)',
             backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(33, 150, 243, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
             textAlign: 'center'
           }}>
             <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: 'white' }}>
@@ -172,37 +174,37 @@ function LandingPage() {
               mb: 3
             }}>
               <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 1, color: '#feca57', fontWeight: 'bold' }}>
                   🍽️ Snack Discovery
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   Dedicated snack management with random selection for when you need inspiration
                 </Typography>
               </Box>
 
               <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 1, color: '#4ecdc4', fontWeight: 'bold' }}>
                   📊 Meal Tracking
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   Track cooking frequency and last cooked dates to discover your favorites
                 </Typography>
               </Box>
 
               <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 1, color: '#95e1d3', fontWeight: 'bold' }}>
                   🔗 External Integration
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
                 </Typography>
               </Box>
 
               <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: 'primary.light', fontWeight: 'bold' }}>
+                <Typography variant="h6" sx={{ mb: 1, color: '#a29bfe', fontWeight: 'bold' }}>
                   👥 Smart Sharing
                 </Typography>
-                <Typography variant="body2" sx={{ color: 'grey.300' }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                   Permission-based shopping list sharing between family members
                 </Typography>
               </Box>
@@ -240,11 +242,17 @@ function LandingPage() {
             sx={{
               borderColor: 'white',
               color: 'white',
+              borderWidth: 2,
+              px: 3,
+              py: 1,
               '&:hover': {
-                borderColor: 'primary.main',
-                color: 'primary.main',
-                bgcolor: 'rgba(33, 150, 243, 0.1)'
-              }
+                borderColor: '#feca57',
+                color: '#feca57',
+                bgcolor: 'rgba(254, 202, 87, 0.1)',
+                borderWidth: 2,
+                transform: 'translateY(-2px)'
+              },
+              transition: 'all 0.3s ease'
             }}
           >
             Ready to Start Planning? Sign In Here
