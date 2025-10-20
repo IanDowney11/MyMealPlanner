@@ -20,7 +20,9 @@ import {
   Share as ShareIcon,
   LocalDining as SnackIcon,
   Api as ApiIcon,
-  CloudSync as CloudIcon
+  CloudSync as CloudIcon,
+  TrendingUp as TrackingIcon,
+  GitHub as GitHubIcon
 } from '@mui/icons-material';
 import AuthModal from './AuthModal';
 import PWAInstallPrompt from './PWAInstallPrompt';
@@ -30,32 +32,32 @@ function LandingPage() {
 
   const features = [
     {
-      icon: <RestaurantIcon sx={{ fontSize: 40, color: '#ff6b6b' }} />,
+      icon: <RestaurantIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Meal Management',
       description: 'Add, rate, and organize recipes with images, tags, versions, and external API integration (10,000+ Spoonacular recipes)'
     },
     {
-      icon: <CalendarIcon sx={{ fontSize: 40, color: '#4ecdc4' }} />,
+      icon: <CalendarIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Smart Planning',
       description: 'Drag-and-drop weekly calendar with meal tracking, cooking frequency, and event scheduling'
     },
     {
-      icon: <ShoppingCartIcon sx={{ fontSize: 40, color: '#95e1d3' }} />,
+      icon: <ShoppingCartIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Shopping & Sharing',
       description: 'Create lists, share between users with permissions, and track completion status'
     },
     {
-      icon: <SyncIcon sx={{ fontSize: 40, color: '#f38181' }} />,
+      icon: <SyncIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Cloud Sync & API',
       description: 'Real-time sync across devices plus REST API for Home Assistant integration'
     },
     {
-      icon: <SecurityIcon sx={{ fontSize: 40, color: '#feca57' }} />,
+      icon: <SecurityIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Secure & Private',
       description: 'Row Level Security, encrypted storage, no data collection - your data stays yours'
     },
     {
-      icon: <DevicesIcon sx={{ fontSize: 40, color: '#a29bfe' }} />,
+      icon: <DevicesIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Progressive Web App',
       description: 'Install on any device, works offline, responsive design with Material-UI'
     }
@@ -64,7 +66,7 @@ function LandingPage() {
   return (
     <Box sx={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+      background: 'linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #2980b9 100%)',
       color: 'white',
       py: 4
     }}>
@@ -101,11 +103,11 @@ function LandingPage() {
               px: 4,
               py: 1.5,
               fontSize: '1.1rem',
-              background: 'linear-gradient(45deg, #ff6b6b, #f38181)',
-              boxShadow: '0 4px 20px rgba(255, 107, 107, 0.4)',
+              background: 'linear-gradient(45deg, #27ae60, #2ecc71)',
+              boxShadow: '0 4px 20px rgba(46, 204, 113, 0.4)',
               '&:hover': {
-                background: 'linear-gradient(45deg, #ee5a6f, #f06595)',
-                boxShadow: '0 6px 25px rgba(255, 107, 107, 0.5)',
+                background: 'linear-gradient(45deg, #229954, #27ae60)',
+                boxShadow: '0 6px 25px rgba(46, 204, 113, 0.5)',
                 transform: 'translateY(-2px)'
               },
               transition: 'all 0.3s ease'
@@ -173,40 +175,52 @@ function LandingPage() {
               gap: 3,
               mb: 3
             }}>
-              <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: '#feca57', fontWeight: 'bold' }}>
-                  🍽️ Snack Discovery
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                  Dedicated snack management with random selection for when you need inspiration
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <SnackIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                    Snack Discovery
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    Dedicated snack management with random selection for when you need inspiration
+                  </Typography>
+                </Box>
               </Box>
 
-              <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: '#4ecdc4', fontWeight: 'bold' }}>
-                  📊 Meal Tracking
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                  Track cooking frequency and last cooked dates to discover your favorites
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <TrackingIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                    Meal Tracking
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    Track cooking frequency and last cooked dates to discover your favorites
+                  </Typography>
+                </Box>
               </Box>
 
-              <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: '#95e1d3', fontWeight: 'bold' }}>
-                  🔗 External Integration
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                  Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <ApiIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                    External Integration
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
+                  </Typography>
+                </Box>
               </Box>
 
-              <Box>
-                <Typography variant="h6" sx={{ mb: 1, color: '#a29bfe', fontWeight: 'bold' }}>
-                  👥 Smart Sharing
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
-                  Permission-based shopping list sharing between family members
-                </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <ShareIcon sx={{ fontSize: 40, color: 'rgba(255, 255, 255, 0.9)' }} />
+                <Box>
+                  <Typography variant="h6" sx={{ mb: 0.5, color: 'white', fontWeight: 'bold' }}>
+                    Smart Sharing
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                    Permission-based shopping list sharing between family members
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Paper>
@@ -232,31 +246,56 @@ function LandingPage() {
           </Typography>
 
           <Typography variant="body1" sx={{ mb: 3, color: 'grey.300' }}>
-            There are no rights reserved - feel free to fork, modify, or contribute.
-            <strong> Forking is a compliment!</strong>
+            <strong>No Rights Reserved</strong> - Fork, modify, and contribute as you wish.
           </Typography>
 
-          <Button
-            variant="outlined"
-            onClick={() => setAuthModalOpen(true)}
-            sx={{
-              borderColor: 'white',
-              color: 'white',
-              borderWidth: 2,
-              px: 3,
-              py: 1,
-              '&:hover': {
-                borderColor: '#feca57',
-                color: '#feca57',
-                bgcolor: 'rgba(254, 202, 87, 0.1)',
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              onClick={() => setAuthModalOpen(true)}
+              sx={{
+                borderColor: 'white',
+                color: 'white',
                 borderWidth: 2,
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease'
-            }}
-          >
-            Ready to Start Planning? Sign In Here
-          </Button>
+                px: 3,
+                py: 1,
+                '&:hover': {
+                  borderColor: '#2ecc71',
+                  color: '#2ecc71',
+                  bgcolor: 'rgba(46, 204, 113, 0.1)',
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              Ready to Start Planning? Sign In Here
+            </Button>
+
+            <Button
+              variant="outlined"
+              href="https://github.com/IanDowney11/MyMealPlanner"
+              target="_blank"
+              rel="noopener noreferrer"
+              startIcon={<GitHubIcon />}
+              sx={{
+                borderColor: 'white',
+                color: 'white',
+                borderWidth: 2,
+                px: 3,
+                py: 1,
+                '&:hover': {
+                  borderColor: 'white',
+                  bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 2,
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.3s ease'
+              }}
+            >
+              View on GitHub
+            </Button>
+          </Box>
         </Paper>
 
       </Container>
