@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom';
 import { CssBaseline, Box, useMediaQuery, IconButton } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import theme from '../theme/theme';
+import { NotificationProvider } from '../contexts/NotificationContext';
 
 // Import your page components
 import Home from '../pages/Home';
@@ -13,6 +14,7 @@ import ShoppingList from '../pages/ShoppingList';
 import Admin from '../pages/Admin';
 import Navigation, { drawerWidth } from './Navigation';
 import PWAInstallPrompt from './PWAInstallPrompt';
+import OfflineIndicator from './OfflineIndicator';
 
 function ProtectedApp() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -32,8 +34,9 @@ function ProtectedApp() {
   };
 
   return (
-    <>
+    <NotificationProvider>
       <CssBaseline />
+      <OfflineIndicator />
       <Box sx={{ display: 'flex', minHeight: '100vh' }}>
         <Navigation open={sidebarOpen} onToggle={handleSidebarToggle} />
 
@@ -108,7 +111,7 @@ function ProtectedApp() {
         </Box>
       </Box>
       <PWAInstallPrompt />
-    </>
+    </NotificationProvider>
   );
 }
 
