@@ -622,8 +622,8 @@ function MealPlannerContent() {
         key={dateStr}
         elevation={1}
         sx={{
-          p: 2,
-          minHeight: 200,
+          p: { xs: 1.5, sm: 2 },
+          minHeight: { xs: 180, sm: 200 },
           border: '2px dashed',
           borderColor: isOver ? 'primary.main' : 'divider',
           backgroundColor: isOver ? 'action.hover' : 'background.paper',
@@ -634,13 +634,15 @@ function MealPlannerContent() {
           }
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
           <Typography
             variant="h6"
             sx={{
               flex: 1,
               textAlign: 'center',
-              lineHeight: 1.3
+              lineHeight: 1.3,
+              fontSize: { xs: '0.95rem', sm: '1.25rem' },
+              fontWeight: 600
             }}
           >
             {formatDisplayDate(date)}
@@ -652,6 +654,8 @@ function MealPlannerContent() {
               onClick={() => handleAddEvent(date)}
               sx={{
                 color: 'primary.main',
+                minWidth: 44,
+                minHeight: 44,
                 '&:hover': { bgcolor: 'primary.main', color: 'white' }
               }}
             >
@@ -715,7 +719,7 @@ function MealPlannerContent() {
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ textAlign: 'center', mb: 1.5 }}
+          sx={{ textAlign: 'center', mb: 1, fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
         >
           Dinner
         </Typography>
@@ -729,10 +733,12 @@ function MealPlannerContent() {
               size="small"
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 4,
+                right: 4,
                 backgroundColor: 'error.main',
                 color: 'white',
+                minWidth: { xs: 36, sm: 32 },
+                minHeight: { xs: 36, sm: 32 },
                 '&:hover': {
                   backgroundColor: 'error.dark',
                 }
@@ -747,11 +753,11 @@ function MealPlannerContent() {
               textAlign: 'center',
               color: 'text.disabled',
               fontStyle: 'italic',
-              py: 3,
-              px: 2.5
+              py: { xs: 2, sm: 3 },
+              px: 2
             }}
           >
-            <Typography variant="body2" color="text.disabled">
+            <Typography variant="body2" color="text.disabled" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               {isMobile ? 'Tap a meal to schedule' : 'Drag a meal here'}
             </Typography>
           </Box>
@@ -1040,74 +1046,82 @@ function MealPlannerContent() {
         <Paper
           elevation={0}
           sx={{
-            p: 2.5,
+            p: { xs: 1.5, sm: 2.5 },
             borderBottom: 1,
             borderColor: 'divider',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 2,
+            gap: { xs: 1.5, sm: 2 },
             borderRadius: 0
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Tooltip title={sidebarOpen ? 'Hide meals' : 'Show meals'}>
             <IconButton
               onClick={toggleSidebar}
               color="primary"
               sx={{
                 border: 1,
                 borderColor: 'divider',
-                // Add margin on mobile to prevent overlap with main nav burger
-                ...(isMobile && { ml: 6 })
+                minWidth: 44,
+                minHeight: 44
               }}
             >
               <MenuIcon />
             </IconButton>
-          </Box>
+          </Tooltip>
 
           {/* Week Navigation */}
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            gap: { xs: 1, sm: 1.5 },
-            flexWrap: 'wrap',
-            justifyContent: { xs: 'center', sm: 'flex-start' }
+            gap: 1,
+            flexWrap: 'nowrap',
+            justifyContent: 'center',
+            flex: { xs: 1, sm: 'unset' }
           }}>
-            <Button
+            <IconButton
               onClick={goToLastWeek}
-              variant="outlined"
-              startIcon={isMobile ? null : <ArrowBackIcon />}
-              color="inherit"
-              size={isMobile ? "small" : "medium"}
-              sx={{ minWidth: { xs: 'auto', sm: 'unset' } }}
+              color="primary"
+              size={isMobile ? "medium" : "large"}
+              sx={{
+                border: 1,
+                borderColor: 'divider',
+                minWidth: { xs: 44, sm: 48 },
+                minHeight: { xs: 44, sm: 48 }
+              }}
             >
-              {isMobile ? <ArrowBackIcon /> : 'Last Week'}
-            </Button>
+              <ArrowBackIcon />
+            </IconButton>
 
             <Chip
-              label={`📅 ${getWeekDisplayText()}`}
+              label={getWeekDisplayText()}
               color={selectedWeekOffset === 0 ? "primary" : "default"}
               onClick={selectedWeekOffset !== 0 ? goToCurrentWeek : undefined}
-              size={isMobile ? "small" : "medium"}
+              size={isMobile ? "medium" : "medium"}
               sx={{
                 minWidth: { xs: 100, sm: 120 },
                 fontWeight: 'bold',
                 cursor: selectedWeekOffset !== 0 ? 'pointer' : 'default',
-                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                px: { xs: 1, sm: 2 }
               }}
             />
 
-            <Button
+            <IconButton
               onClick={goToNextWeek}
-              variant="outlined"
-              endIcon={isMobile ? null : <ArrowForwardIcon />}
-              color="inherit"
-              size={isMobile ? "small" : "medium"}
-              sx={{ minWidth: { xs: 'auto', sm: 'unset' } }}
+              color="primary"
+              size={isMobile ? "medium" : "large"}
+              sx={{
+                border: 1,
+                borderColor: 'divider',
+                minWidth: { xs: 44, sm: 48 },
+                minHeight: { xs: 44, sm: 48 }
+              }}
             >
-              {isMobile ? <ArrowForwardIcon /> : 'Next Week'}
-            </Button>
+              <ArrowForwardIcon />
+            </IconButton>
 
             {/* Copy Last Week Button - hide on mobile, show on desktop when on current week */}
             {selectedWeekOffset === 0 && !isMobile && (
@@ -1116,6 +1130,7 @@ function MealPlannerContent() {
                 variant="contained"
                 startIcon={<CopyIcon />}
                 color="secondary"
+                size="small"
                 sx={{ ml: 1 }}
               >
                 Copy Last Week
@@ -1124,14 +1139,16 @@ function MealPlannerContent() {
           </Box>
 
           <Box sx={{
-            textAlign: 'right'
+            textAlign: { xs: 'center', sm: 'right' },
+            width: { xs: '100%', sm: 'auto' },
+            mt: { xs: 1, sm: 0 }
           }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
               {weekDates.length > 0 &&
                 `${weekDates[0].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${weekDates[6].toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
               }
             </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block', fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
               {Object.keys(weeklyPlan).length} of 7 days planned
             </Typography>
           </Box>
@@ -1140,13 +1157,13 @@ function MealPlannerContent() {
         {/* Calendar Grid */}
         <Box sx={{
           flex: 1,
-          p: 2.5,
+          p: { xs: 1.5, sm: 2.5 },
           overflowY: 'auto'
         }}>
           <Box sx={{
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 2.5,
+            gap: { xs: 1.5, sm: 2.5 },
             maxWidth: 1400,
             margin: '0 auto'
           }}>
