@@ -38,12 +38,12 @@ function getTomorrowDate() {
 }
 
 // Helper function to format meal response
-function formatMealResponse(mealData) {
+function formatMealResponse(mealData, options = {}) {
   if (!mealData || !mealData.meal) {
     return null;
   }
 
-  return {
+  const meal = {
     title: mealData.meal.title || 'Untitled Meal',
     description: mealData.meal.description || '',
     rating: mealData.meal.rating || 0,
@@ -51,6 +51,45 @@ function formatMealResponse(mealData) {
     tags: mealData.meal.tags || [],
     versions: mealData.meal.versions || []
   };
+
+  // If includeImage is explicitly false, remove the image
+  if (options.includeImage === false) {
+    delete meal.image;
+  }
+
+  return meal;
+}
+
+// Helper function to check response size and strip image if needed
+function ensureResponseSizeLimit(responseData, maxSize = 250000) {
+  const responseStr = JSON.stringify(responseData);
+
+  // If response is within limit, return as-is
+  if (responseStr.length <= maxSize) {
+    return responseData;
+  }
+
+  // Response is too large - try removing image
+  console.warn(`Response size (${responseStr.length} chars) exceeds limit (${maxSize} chars). Removing image.`);
+
+  if (responseData.meal && responseData.meal.image) {
+    const modifiedResponse = {
+      ...responseData,
+      meal: {
+        ...responseData.meal,
+        image: '',
+        _imageRemoved: true,
+        _reason: 'Response size exceeded Home Assistant limit'
+      }
+    };
+
+    const modifiedStr = JSON.stringify(modifiedResponse);
+    console.log(`Response size after removing image: ${modifiedStr.length} chars`);
+
+    return modifiedResponse;
+  }
+
+  return responseData;
 }
 
 // Helper function to get meal for a specific date
@@ -100,9 +139,12 @@ async function getMealForDate(date, userId) {
 // API Routes
 
 // GET /api/meals/tonight - Returns tonight's planned meal
+// Query params:
+//   - userId (required): User ID to fetch meals for
+//   - includeImage (optional): Set to 'false' to exclude image from response
 app.get('/api/meals/tonight', async (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, includeImage } = req.query;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId parameter is required' });
@@ -118,12 +160,22 @@ app.get('/api/meals/tonight', async (req, res) => {
       });
     }
 
-    const formattedMeal = formatMealResponse(mealData);
+    // Format meal with optional image exclusion
+    const shouldIncludeImage = includeImage !== 'false';
+    const formattedMeal = formatMealResponse(mealData, { includeImage: shouldIncludeImage });
 
-    res.json({
+    const response = {
       date: today,
       meal: formattedMeal
-    });
+    };
+
+    // Ensure response doesn't exceed Home Assistant's 262,144 character limit
+    // (only if image is included)
+    const safeResponse = shouldIncludeImage
+      ? ensureResponseSizeLimit(response, 250000)
+      : response;
+
+    res.json(safeResponse);
   } catch (error) {
     console.error('Error fetching tonight\'s meal:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -131,9 +183,12 @@ app.get('/api/meals/tonight', async (req, res) => {
 });
 
 // GET /api/meals/tomorrow - Returns tomorrow's planned meal
+// Query params:
+//   - userId (required): User ID to fetch meals for
+//   - includeImage (optional): Set to 'false' to exclude image from response
 app.get('/api/meals/tomorrow', async (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, includeImage } = req.query;
 
     if (!userId) {
       return res.status(400).json({ error: 'userId parameter is required' });
@@ -149,12 +204,22 @@ app.get('/api/meals/tomorrow', async (req, res) => {
       });
     }
 
-    const formattedMeal = formatMealResponse(mealData);
+    // Format meal with optional image exclusion
+    const shouldIncludeImage = includeImage !== 'false';
+    const formattedMeal = formatMealResponse(mealData, { includeImage: shouldIncludeImage });
 
-    res.json({
+    const response = {
       date: tomorrow,
       meal: formattedMeal
-    });
+    };
+
+    // Ensure response doesn't exceed Home Assistant's 262,144 character limit
+    // (only if image is included)
+    const safeResponse = shouldIncludeImage
+      ? ensureResponseSizeLimit(response, 250000)
+      : response;
+
+    res.json(safeResponse);
   } catch (error) {
     console.error('Error fetching tomorrow\'s meal:', error);
     res.status(500).json({ error: 'Internal server error' });

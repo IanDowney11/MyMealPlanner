@@ -66,8 +66,8 @@ function MealForm({ meal = null, onSave, onCancel }) {
       try {
         setIsProcessingImage(true);
 
-        // Process and resize image to max 100KB
-        const resizedImageData = await processImageFile(file, 100);
+        // Process and resize image to max 50KB
+        const resizedImageData = await processImageFile(file, 50);
 
         setFormData(prev => ({ ...prev, image: resizedImageData }));
         setImagePreview(resizedImageData);
@@ -247,7 +247,7 @@ function MealForm({ meal = null, onSave, onCancel }) {
               Image
             </FormLabel>
             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Images are automatically resized to max 100KB for optimal performance
+              Images are automatically resized to max 50KB for optimal performance
             </Typography>
             <Button
               component="label"
