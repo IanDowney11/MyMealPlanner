@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, FormControl, FormLabel, Input } from '@mui/material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, FormControl, FormLabel, Input, CircularProgress } from '@mui/material';
 import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
+import { processImageFile } from '../utils/imageUtils';
 
 function SnackForm({ snack = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ function SnackForm({ snack = null, onSave, onCancel }) {
     image: ''
   });
   const [imagePreview, setImagePreview] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
     if (snack) {
@@ -29,16 +31,23 @@ function SnackForm({ snack = null, onSave, onCancel }) {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageData = event.target.result;
-        setFormData(prev => ({ ...prev, image: imageData }));
-        setImagePreview(imageData);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsProcessingImage(true);
+
+        // Process and resize image to max 100KB
+        const resizedImageData = await processImageFile(file, 100);
+
+        setFormData(prev => ({ ...prev, image: resizedImageData }));
+        setImagePreview(resizedImageData);
+      } catch (error) {
+        console.error('Error processing image:', error);
+        alert('Error processing image. Please try a different image.');
+      } finally {
+        setIsProcessingImage(false);
+      }
     }
   };
 
@@ -102,18 +111,23 @@ function SnackForm({ snack = null, onSave, onCancel }) {
             <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
               Image
             </FormLabel>
+            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+              Images are automatically resized to max 100KB for optimal performance
+            </Typography>
             <Button
               component="label"
               variant="outlined"
-              startIcon={<UploadIcon />}
+              startIcon={isProcessingImage ? <CircularProgress size={20} /> : <UploadIcon />}
+              disabled={isProcessingImage}
               sx={{ mb: 2 }}
             >
-              Choose Image
+              {isProcessingImage ? 'Processing...' : 'Choose Image'}
               <Input
                 type="file"
                 accept="image/*"
                 onChange={handleImageUpload}
                 sx={{ display: 'none' }}
+                disabled={isProcessingImage}
               />
             </Button>
             {imagePreview && (
