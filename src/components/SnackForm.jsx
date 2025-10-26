@@ -13,14 +13,45 @@ function SnackForm({ snack = null, onSave, onCancel }) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
-    if (snack) {
-      setFormData({
-        title: snack.title || '',
-        description: snack.description || '',
-        image: snack.image || ''
-      });
-      setImagePreview(snack.image || '');
-    }
+    const loadAndResizeSnack = async () => {
+      if (snack) {
+        // Check if the existing image needs resizing
+        let processedImage = snack.image || '';
+
+        if (snack.image && snack.image.startsWith('data:image')) {
+          try {
+            // Check if image is larger than 50KB
+            const base64String = snack.image.split(',')[1];
+            const sizeInBytes = (base64String.length * 3) / 4;
+            const sizeInKB = sizeInBytes / 1024;
+
+            // If image is larger than 50KB, resize it
+            if (sizeInKB > 50) {
+              console.log(`Existing image is ${sizeInKB.toFixed(2)}KB, resizing to 50KB...`);
+              setIsProcessingImage(true);
+              const { resizeImageToMaxSize } = await import('../utils/imageUtils');
+              processedImage = await resizeImageToMaxSize(snack.image, 50);
+              console.log('Image resized successfully');
+            }
+          } catch (error) {
+            console.error('Error resizing existing image:', error);
+            // Keep original image if resize fails
+            processedImage = snack.image;
+          } finally {
+            setIsProcessingImage(false);
+          }
+        }
+
+        setFormData({
+          title: snack.title || '',
+          description: snack.description || '',
+          image: processedImage
+        });
+        setImagePreview(processedImage);
+      }
+    };
+
+    loadAndResizeSnack();
   }, [snack]);
 
   const handleChange = (e) => {

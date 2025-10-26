@@ -22,19 +22,50 @@ function MealForm({ meal = null, onSave, onCancel }) {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
-    if (meal) {
-      setFormData({
-        title: meal.title || '',
-        description: meal.description || '',
-        rating: meal.rating || 1,
-        freezerPortions: meal.freezerPortions || 0,
-        image: meal.image || '',
-        recipeUrl: meal.recipeUrl || '',
-        versions: meal.versions || [],
-        tags: meal.tags || []
-      });
-      setImagePreview(meal.image || '');
-    }
+    const loadAndResizeMeal = async () => {
+      if (meal) {
+        // Check if the existing image needs resizing
+        let processedImage = meal.image || '';
+
+        if (meal.image && meal.image.startsWith('data:image')) {
+          try {
+            // Check if image is larger than 50KB
+            const base64String = meal.image.split(',')[1];
+            const sizeInBytes = (base64String.length * 3) / 4;
+            const sizeInKB = sizeInBytes / 1024;
+
+            // If image is larger than 50KB, resize it
+            if (sizeInKB > 50) {
+              console.log(`Existing image is ${sizeInKB.toFixed(2)}KB, resizing to 50KB...`);
+              setIsProcessingImage(true);
+              const { resizeImageToMaxSize } = await import('../utils/imageUtils');
+              processedImage = await resizeImageToMaxSize(meal.image, 50);
+              console.log('Image resized successfully');
+            }
+          } catch (error) {
+            console.error('Error resizing existing image:', error);
+            // Keep original image if resize fails
+            processedImage = meal.image;
+          } finally {
+            setIsProcessingImage(false);
+          }
+        }
+
+        setFormData({
+          title: meal.title || '',
+          description: meal.description || '',
+          rating: meal.rating || 1,
+          freezerPortions: meal.freezerPortions || 0,
+          image: processedImage,
+          recipeUrl: meal.recipeUrl || '',
+          versions: meal.versions || [],
+          tags: meal.tags || []
+        });
+        setImagePreview(processedImage);
+      }
+    };
+
+    loadAndResizeMeal();
   }, [meal]);
 
   useEffect(() => {
