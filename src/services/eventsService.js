@@ -29,6 +29,9 @@ export async function saveEvent(event) {
       title: event.title,
       type: event.type,
       date: event.date,
+      monthly_pattern: event.monthlyPattern || null,
+      monthly_week: event.monthlyWeek || null,
+      monthly_day_of_week: event.monthlyDayOfWeek ?? null,
       updated_at: new Date().toISOString()
     };
 
@@ -126,6 +129,8 @@ export async function getEventsForDate(date) {
         // Check if it's the same day of the week
         const eventDate = new Date(event.date);
         return eventDate.getDay() === targetDate.getDay();
+      } else if (event.type === 'monthly') {
+        return matchesMonthlyPattern(event, targetDate);
       }
       return false;
     });
@@ -133,4 +138,56 @@ export async function getEventsForDate(date) {
     console.error('Error fetching events for date:', error);
     throw error;
   }
+}
+
+// Helper function to check if a date matches a monthly recurring pattern
+function matchesMonthlyPattern(event, targetDate) {
+  const monthlyPattern = event.monthly_pattern;
+
+  if (monthlyPattern === 'date') {
+    // Same date each month (e.g., 15th of every month)
+    const eventDate = new Date(event.date);
+    return targetDate.getDate() === eventDate.getDate();
+  } else if (monthlyPattern === 'day-of-week') {
+    // Same day of week pattern (e.g., first Tuesday, last Wednesday)
+    const targetDayOfWeek = targetDate.getDay();
+    const monthlyDayOfWeek = event.monthly_day_of_week;
+    const monthlyWeek = event.monthly_week;
+
+    // First, check if the day of week matches
+    if (targetDayOfWeek !== monthlyDayOfWeek) {
+      return false;
+    }
+
+    // Now check if it's the correct week of the month
+    return isCorrectWeekOfMonth(targetDate, monthlyWeek);
+  }
+
+  return false;
+}
+
+// Helper function to determine if a date is the correct week of the month
+function isCorrectWeekOfMonth(date, weekPattern) {
+  const dayOfMonth = date.getDate();
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  if (weekPattern === 'first') {
+    return dayOfMonth >= 1 && dayOfMonth <= 7;
+  } else if (weekPattern === 'second') {
+    return dayOfMonth >= 8 && dayOfMonth <= 14;
+  } else if (weekPattern === 'third') {
+    return dayOfMonth >= 15 && dayOfMonth <= 21;
+  } else if (weekPattern === 'fourth') {
+    return dayOfMonth >= 22 && dayOfMonth <= 28;
+  } else if (weekPattern === 'last') {
+    // Check if this is the last occurrence of this day of week in the month
+    const dayOfWeek = date.getDay();
+
+    // Check if adding 7 days would put us in the next month
+    const nextWeek = new Date(year, month, dayOfMonth + 7);
+    return nextWeek.getMonth() !== month;
+  }
+
+  return false;
 }
