@@ -1,5 +1,14 @@
 import { supabase } from '../lib/supabase';
 
+// Helper function to format date in local timezone (not UTC)
+// This prevents timezone offset issues where dates might shift by a day
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Meals CRUD operations
 export async function getMeals(sortBy = 'created_at', sortOrder = 'desc') {
   try {
@@ -252,11 +261,11 @@ export async function saveMealPlan(date, meal, useFromFreezer = null) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
     const weekKey = getWeekKey(dateStr);
 
     // Check if this is a past date and automatically mark as eaten
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDate(new Date());
     const isPastDate = dateStr < today;
 
     // Determine if we should use from freezer
@@ -347,7 +356,7 @@ export async function getMealPlan(date) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
 
     const { data, error } = await supabase
       .from('meal_plans')
@@ -410,7 +419,7 @@ export async function deleteMealPlan(date) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
+    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
 
     // First get the meal plan to check if it was from freezer
     const existingPlan = await getMealPlan(dateStr);
@@ -476,7 +485,7 @@ export async function deleteMealPlan(date) {
 function getWeekKey(dateStr) {
   const date = new Date(dateStr);
   const monday = getMonday(date);
-  return monday.toISOString().split('T')[0];
+  return formatLocalDate(monday);
 }
 
 function getMonday(date) {
@@ -552,7 +561,7 @@ export async function copyLastWeekMealPlans(currentWeekKey) {
     const currentMondayDate = new Date(currentWeekKey);
     const lastMondayDate = new Date(currentMondayDate);
     lastMondayDate.setDate(lastMondayDate.getDate() - 7);
-    const lastWeekKey = lastMondayDate.toISOString().split('T')[0];
+    const lastWeekKey = formatLocalDate(lastMondayDate);
 
     console.log('Last week key:', lastWeekKey);
 
@@ -589,7 +598,7 @@ export async function copyLastWeekMealPlans(currentWeekKey) {
 
       const newDate = new Date(currentWeekKey);
       newDate.setDate(newDate.getDate() + mondayOffset);
-      const newDateStr = newDate.toISOString().split('T')[0];
+      const newDateStr = formatLocalDate(newDate);
 
       const newPlan = {
         user_id: user.id,
