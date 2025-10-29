@@ -152,8 +152,9 @@ function MealPlannerContent() {
   const checkScreenSize = () => {
     const mobile = window.innerWidth <= 768;
     setIsMobile(mobile);
+    // Always keep sidebar open on mobile for vertical layout
     if (mobile) {
-      setSidebarOpen(false);
+      setSidebarOpen(true);
     }
   };
 
@@ -774,19 +775,22 @@ function MealPlannerContent() {
     return (
       <Box sx={{
         display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
         height: 'calc(100vh - 64px)',
-        bgcolor: 'background.default'
+        bgcolor: 'background.default',
+        overflow: { xs: 'auto', md: 'hidden' }
       }}>
         {/* Sidebar Skeleton */}
         <Paper
           elevation={0}
           sx={{
-            width: 320,
-            borderRight: 1,
+            width: { xs: '100%', md: 320 },
+            maxHeight: { xs: '40vh', md: '100%' },
+            borderRight: { xs: 0, md: 1 },
+            borderBottom: { xs: 1, md: 0 },
             borderColor: 'divider',
-            p: 2.5,
-            pt: 4,
-            display: isMobile ? 'none' : 'block'
+            p: { xs: 2, md: 2.5 },
+            pt: { xs: 2, md: 4 }
           }}
         >
           <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2.5 }} />
@@ -831,12 +835,17 @@ function MealPlannerContent() {
           </Paper>
 
           {/* Calendar Grid Skeleton */}
-          <Box sx={{ flex: 1, p: 2.5, overflowY: 'auto' }}>
+          <Box sx={{
+            flex: { xs: 'unset', md: 1 },
+            p: { xs: 1.5, md: 2.5 },
+            overflowY: { xs: 'visible', md: 'auto' },
+            pb: { xs: 4, md: 2.5 }
+          }}>
             <Box sx={{
               display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: 2.5,
-              maxWidth: 1400,
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(280px, 1fr))' },
+              gap: { xs: 1.5, md: 2.5 },
+              maxWidth: { xs: '100%', md: 1400 },
               margin: '0 auto'
             }}>
               {[1, 2, 3, 4, 5, 6, 7].map(i => (
@@ -866,42 +875,36 @@ function MealPlannerContent() {
   return (
     <Box sx={{
       display: 'flex',
+      flexDirection: { xs: 'column', md: 'row' }, // Column on mobile, row on desktop
       height: 'calc(100vh - 64px)', // Subtract navigation height
       bgcolor: 'background.default',
-      position: 'relative'
+      position: 'relative',
+      overflow: { xs: 'auto', md: 'hidden' } // Allow scrolling on mobile
     }}>
-      {/* Mobile Overlay */}
-      {isMobile && sidebarOpen && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            bgcolor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 999
-          }}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
 
       {/* Sidebar */}
       <Paper
-        elevation={isMobile ? 2 : 0}
+        elevation={0}
         sx={{
-          width: sidebarOpen ? 320 : 0,
-          borderRight: 1,
+          width: { xs: '100%', md: sidebarOpen ? 320 : 0 },
+          minHeight: { xs: 'auto', md: '100%' },
+          maxHeight: { xs: '40vh', md: '100%' },
+          borderRight: { xs: 0, md: 1 },
+          borderBottom: { xs: 1, md: 0 },
           borderColor: 'divider',
-          overflow: 'hidden',
-          transition: 'width 0.3s ease',
-          zIndex: isMobile ? 1000 : 1,
-          position: isMobile ? 'fixed' : 'relative',
-          height: '100%',
+          overflow: { xs: 'visible', md: 'hidden' },
+          transition: { xs: 'none', md: 'width 0.3s ease' },
+          position: 'relative',
           borderRadius: 0
         }}
       >
-        <Box sx={{ p: 2.5, pt: isMobile ? 2.5 : 4, height: '100%', overflowY: 'auto' }}>
+        <Box sx={{
+          p: { xs: 2, md: 2.5 },
+          pt: { xs: 2, md: 4 },
+          height: { xs: 'auto', md: '100%' },
+          maxHeight: { xs: '40vh', md: 'none' },
+          overflowY: 'auto'
+        }}>
           <Box sx={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -911,17 +914,10 @@ function MealPlannerContent() {
             <Typography
               variant="h6"
               color="text.primary"
+              sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}
             >
               Available Meals
             </Typography>
-            {isMobile && (
-              <IconButton
-                onClick={() => setSidebarOpen(false)}
-                color="inherit"
-              >
-                <CloseIcon />
-              </IconButton>
-            )}
           </Box>
 
           {/* Tag Filter */}
@@ -1061,20 +1057,22 @@ function MealPlannerContent() {
             borderRadius: 0
           }}
         >
-          <Tooltip title={sidebarOpen ? 'Hide meals' : 'Show meals'}>
-            <IconButton
-              onClick={toggleSidebar}
-              color="primary"
-              sx={{
-                border: 1,
-                borderColor: 'divider',
-                minWidth: 44,
-                minHeight: 44
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
-          </Tooltip>
+          {!isMobile && (
+            <Tooltip title={sidebarOpen ? 'Hide meals' : 'Show meals'}>
+              <IconButton
+                onClick={toggleSidebar}
+                color="primary"
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  minWidth: 44,
+                  minHeight: 44
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </Tooltip>
+          )}
 
           {/* Week Navigation */}
           <Box sx={{
@@ -1160,15 +1158,16 @@ function MealPlannerContent() {
 
         {/* Calendar Grid */}
         <Box sx={{
-          flex: 1,
-          p: { xs: 1.5, sm: 2.5 },
-          overflowY: 'auto'
+          flex: { xs: 'unset', md: 1 },
+          p: { xs: 1.5, md: 2.5 },
+          overflowY: { xs: 'visible', md: 'auto' },
+          pb: { xs: 4, md: 2.5 } // Extra bottom padding on mobile for scrolling
         }}>
           <Box sx={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: { xs: 1.5, sm: 2.5 },
-            maxWidth: 1400,
+            gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(280px, 1fr))' },
+            gap: { xs: 1.5, md: 2.5 },
+            maxWidth: { xs: '100%', md: 1400 },
             margin: '0 auto'
           }}>
             {weekDates.map(date => (
