@@ -19,7 +19,11 @@ import {
   ListItemText,
   TextField,
   Autocomplete,
-  Skeleton
+  Skeleton,
+  Collapse,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -34,7 +38,9 @@ import {
   ContentCopy as CopyIcon,
   LocalOffer as TagIcon,
   Clear as ClearIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
@@ -75,6 +81,7 @@ function MealPlannerContent() {
   const [eventMenuAnchor, setEventMenuAnchor] = useState(null);
   const [eventMenuData, setEventMenuData] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [mealsExpanded, setMealsExpanded] = useState(false);
 
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
@@ -902,34 +909,32 @@ function MealPlannerContent() {
   return (
     <Box sx={{
       display: 'flex',
-      flexDirection: { xs: 'column', md: 'row' }, // Column on mobile, row on desktop
-      height: 'calc(100vh - 64px)', // Subtract navigation height
+      flexDirection: { xs: 'column', md: 'row' },
+      height: 'calc(100vh - 64px)',
       bgcolor: 'background.default',
       position: 'relative',
-      overflow: { xs: 'auto', md: 'hidden' } // Allow scrolling on mobile
+      overflow: { xs: 'auto', md: 'hidden' }
     }}>
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar - hidden on mobile */}
       <Paper
         elevation={0}
         sx={{
-          width: { xs: '100%', md: sidebarOpen ? 320 : 0 },
-          minHeight: { xs: 'auto', md: '100%' },
-          maxHeight: { xs: '40vh', md: '100%' },
-          borderRight: { xs: 0, md: 1 },
-          borderBottom: { xs: 1, md: 0 },
+          display: { xs: 'none', md: 'block' },
+          width: { md: sidebarOpen ? 320 : 0 },
+          height: '100%',
+          borderRight: 1,
           borderColor: 'divider',
-          overflow: { xs: 'visible', md: 'hidden' },
-          transition: { xs: 'none', md: 'width 0.3s ease' },
+          overflow: 'hidden',
+          transition: 'width 0.3s ease',
           position: 'relative',
           borderRadius: 0
         }}
       >
         <Box sx={{
-          p: { xs: 2, md: 2.5 },
-          pt: { xs: 2, md: 4 },
-          height: { xs: 'auto', md: '100%' },
-          maxHeight: { xs: '40vh', md: 'none' },
+          p: 2.5,
+          pt: 4,
+          height: '100%',
           overflowY: 'auto'
         }}>
           <Box sx={{
@@ -938,11 +943,7 @@ function MealPlannerContent() {
             alignItems: 'center',
             mb: 2.5
           }}>
-            <Typography
-              variant="h6"
-              color="text.primary"
-              sx={{ fontSize: { xs: '1rem', md: '1.25rem' } }}
-            >
+            <Typography variant="h6" color="text.primary">
               Available Meals
             </Typography>
           </Box>
@@ -965,10 +966,6 @@ function MealPlannerContent() {
                       size="small"
                       InputProps={{
                         ...params.InputProps,
-                        sx: {
-                          minHeight: 44, // Better touch target
-                          ...params.InputProps.sx
-                        },
                         startAdornment: (
                           <>
                             <TagIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }} />
@@ -988,37 +985,23 @@ function MealPlannerContent() {
                         key={option}
                         sx={{
                           fontSize: '0.75rem',
-                          height: { xs: 24, sm: 20 }, // Larger on mobile
+                          height: 20,
                           m: 0.25,
                           '& .MuiChip-deleteIcon': {
-                            fontSize: { xs: 18, sm: 16 }, // Larger delete icon on mobile
+                            fontSize: 16,
                             m: 0.5
                           }
                         }}
                       />
                     ))
                   }
-                  componentsProps={{
-                    paper: {
-                      sx: {
-                        '& .MuiAutocomplete-option': {
-                          minHeight: 44, // Better touch targets in dropdown
-                          px: 2
-                        }
-                      }
-                    }
-                  }}
                 />
                 {selectedTags.length > 0 && (
                   <Button
                     onClick={() => setSelectedTags([])}
                     size="small"
                     startIcon={<ClearIcon />}
-                    sx={{
-                      mt: 1,
-                      fontSize: '0.75rem',
-                      minHeight: { xs: 36, sm: 32 } // Better touch target on mobile
-                    }}
+                    sx={{ mt: 1, fontSize: '0.75rem' }}
                   >
                     Clear Tags
                   </Button>
@@ -1046,12 +1029,9 @@ function MealPlannerContent() {
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{
-                  mb: 2,
-                  fontStyle: 'italic'
-                }}
+                sx={{ mb: 2, fontStyle: 'italic' }}
               >
-                {isMobile ? 'Tap meals to schedule them' : 'Drag meals to plan your week'}
+                Drag meals to plan your week
               </Typography>
               {meals
                 .filter(meal => {
@@ -1183,22 +1163,149 @@ function MealPlannerContent() {
           </Box>
         </Paper>
 
-        {/* Calendar Grid */}
+        {/* Mobile Collapsible Meals Section */}
+        <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+          <Accordion
+            expanded={mealsExpanded}
+            onChange={() => setMealsExpanded(!mealsExpanded)}
+            sx={{
+              borderRadius: 0,
+              boxShadow: 'none',
+              borderBottom: 1,
+              borderColor: 'divider',
+              '&:before': { display: 'none' }
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon />}
+              sx={{
+                bgcolor: 'background.paper',
+                minHeight: 56,
+                '& .MuiAccordionSummary-content': {
+                  my: 1.5
+                }
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MenuIcon color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                  Available Meals ({meals.filter(meal => {
+                    return selectedTags.length === 0 ||
+                      selectedTags.every(tag => meal.tags?.includes(tag));
+                  }).length})
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: 2, bgcolor: 'grey.50' }}>
+              {/* Tag Filter */}
+              {(() => {
+                const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
+                return allTags.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Autocomplete
+                      multiple
+                      options={allTags}
+                      value={selectedTags}
+                      onChange={(event, newValue) => setSelectedTags(newValue)}
+                      size="small"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Filter by tags..."
+                          size="small"
+                          InputProps={{
+                            ...params.InputProps,
+                            sx: { minHeight: 44, ...params.InputProps.sx },
+                            startAdornment: (
+                              <>
+                                <TagIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }} />
+                                {params.InputProps.startAdornment}
+                              </>
+                            )
+                          }}
+                        />
+                      )}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => (
+                          <Chip
+                            variant="outlined"
+                            label={option}
+                            size="small"
+                            {...getTagProps({ index })}
+                            key={option}
+                            sx={{
+                              fontSize: '0.75rem',
+                              height: 24,
+                              m: 0.25,
+                              '& .MuiChip-deleteIcon': { fontSize: 18, m: 0.5 }
+                            }}
+                          />
+                        ))
+                      }
+                    />
+                    {selectedTags.length > 0 && (
+                      <Button
+                        onClick={() => setSelectedTags([])}
+                        size="small"
+                        startIcon={<ClearIcon />}
+                        sx={{ mt: 1, fontSize: '0.75rem', minHeight: 36 }}
+                      >
+                        Clear Tags
+                      </Button>
+                    )}
+                  </Box>
+                );
+              })()}
+
+              {meals.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                  No meals available. Add some meals first!
+                </Typography>
+              ) : (
+                <Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic' }}>
+                    Tap meals to schedule them
+                  </Typography>
+                  {meals
+                    .filter(meal => {
+                      return selectedTags.length === 0 ||
+                        selectedTags.every(tag => meal.tags?.includes(tag));
+                    })
+                    .map(meal => (
+                      <DraggableMealCard key={meal.id} meal={meal} />
+                    ))}
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
+        </Box>
+
+        {/* Calendar Grid - Desktop: Grid, Mobile: Vertical List */}
         <Box sx={{
           flex: { xs: 'unset', md: 1 },
           p: { xs: 1.5, md: 2.5 },
           overflowY: { xs: 'visible', md: 'auto' },
-          pb: { xs: 4, md: 2.5 } // Extra bottom padding on mobile for scrolling
+          pb: { xs: 4, md: 2.5 }
         }}>
+          {/* Desktop Grid */}
           <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(auto-fit, minmax(280px, 1fr))' },
-            gap: { xs: 1.5, md: 2.5 },
-            maxWidth: { xs: '100%', md: 1400 },
+            display: { xs: 'none', md: 'grid' },
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: 2.5,
+            maxWidth: 1400,
             margin: '0 auto'
           }}>
             {weekDates.map(date => (
               <DroppableCalendarDay key={formatDate(date)} date={date} />
+            ))}
+          </Box>
+
+          {/* Mobile Vertical List */}
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            {weekDates.map((date, index) => (
+              <Box key={formatDate(date)} sx={{ mb: index < weekDates.length - 1 ? 2 : 0 }}>
+                <DroppableCalendarDay date={date} />
+              </Box>
             ))}
           </Box>
         </Box>
