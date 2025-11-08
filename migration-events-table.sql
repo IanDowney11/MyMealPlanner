@@ -1,22 +1,47 @@
 -- Migration: Add Events Table with Monthly Recurring Support
 -- This creates the events table for tracking one-time, weekly, and monthly recurring events
 
--- Events table - stores calendar events (one-time, weekly recurring, and monthly recurring)
+-- Create events table if it doesn't exist (base version)
 CREATE TABLE IF NOT EXISTS events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('one-time', 'weekly', 'monthly')),
     date DATE NOT NULL, -- Reference date for the event
-
-    -- Monthly recurring fields
-    monthly_pattern TEXT CHECK (monthly_pattern IN ('date', 'day-of-week') OR monthly_pattern IS NULL),
-    monthly_week TEXT CHECK (monthly_week IN ('first', 'second', 'third', 'fourth', 'last') OR monthly_week IS NULL),
-    monthly_day_of_week INTEGER CHECK (monthly_day_of_week BETWEEN 0 AND 6 OR monthly_day_of_week IS NULL),
-
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+
+-- Add monthly recurring fields if they don't exist
+DO $$
+BEGIN
+    -- Add monthly_pattern column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'events' AND column_name = 'monthly_pattern'
+    ) THEN
+        ALTER TABLE events ADD COLUMN monthly_pattern TEXT
+            CHECK (monthly_pattern IN ('date', 'day-of-week') OR monthly_pattern IS NULL);
+    END IF;
+
+    -- Add monthly_week column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'events' AND column_name = 'monthly_week'
+    ) THEN
+        ALTER TABLE events ADD COLUMN monthly_week TEXT
+            CHECK (monthly_week IN ('first', 'second', 'third', 'fourth', 'last') OR monthly_week IS NULL);
+    END IF;
+
+    -- Add monthly_day_of_week column
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'events' AND column_name = 'monthly_day_of_week'
+    ) THEN
+        ALTER TABLE events ADD COLUMN monthly_day_of_week INTEGER
+            CHECK (monthly_day_of_week BETWEEN 0 AND 6 OR monthly_day_of_week IS NULL);
+    END IF;
+END $$;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS events_user_id_idx ON events(user_id);
