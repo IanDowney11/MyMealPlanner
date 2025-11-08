@@ -26,17 +26,23 @@ CREATE INDEX IF NOT EXISTS events_type_idx ON events(type);
 -- Enable RLS
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
-CREATE POLICY IF NOT EXISTS "Users can view their own events" ON events
+-- Drop existing policies if they exist (to avoid conflicts)
+DROP POLICY IF EXISTS "Users can view their own events" ON events;
+DROP POLICY IF EXISTS "Users can insert their own events" ON events;
+DROP POLICY IF EXISTS "Users can update their own events" ON events;
+DROP POLICY IF EXISTS "Users can delete their own events" ON events;
+
+-- Create RLS Policies
+CREATE POLICY "Users can view their own events" ON events
     FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert their own events" ON events
+CREATE POLICY "Users can insert their own events" ON events
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can update their own events" ON events
+CREATE POLICY "Users can update their own events" ON events
     FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can delete their own events" ON events
+CREATE POLICY "Users can delete their own events" ON events
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Comments
