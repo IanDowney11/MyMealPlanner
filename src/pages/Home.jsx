@@ -4,6 +4,7 @@ import { Button, Typography, Card, CardContent, CardMedia, Box, Chip, CircularPr
 import { CalendarMonth as CalendarIcon, Casino as RandomIcon } from '@mui/icons-material';
 import { initDB, getMealPlan } from '../services/mealsService';
 import { getSnacks } from '../services/snacksService';
+import { getUserTimezone } from '../services/timezoneService';
 
 function Home() {
   const [todaysPlannedMeal, setTodaysPlannedMeal] = useState(null);
@@ -18,10 +19,20 @@ function Home() {
   const loadTodaysPlannedMeal = async () => {
     try {
       await initDB();
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-      const mealPlan = await getMealPlan(todayStr);
+      // Get today's date in user's timezone
+      const timezone = await getUserTimezone();
+      const today = new Date();
+      const todayStr = today.toLocaleString('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const [month, day, year] = todayStr.split('/');
+      const todayFormatted = `${year}-${month}-${day}`;
+
+      const mealPlan = await getMealPlan(todayFormatted);
       setTodaysPlannedMeal(mealPlan?.meal || null);
     } catch (error) {
       console.error('Error loading today\'s planned meal:', error);

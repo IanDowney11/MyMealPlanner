@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input } from '@mui/material';
-import { FileDownload as ExportIcon, FileUpload as ImportIcon, BugReport as DebugIcon } from '@mui/icons-material';
+import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input, Autocomplete, TextField } from '@mui/material';
+import { FileDownload as ExportIcon, FileUpload as ImportIcon, BugReport as DebugIcon, Public as TimezoneIcon } from '@mui/icons-material';
 import { getMeals, saveMeal, initDB } from '../services/mealsService';
 import { testSupabaseConnection } from '../utils/debugSupabase';
 import { debugSharingSetup } from '../services/sharingService';
+import { getUserTimezone, setUserTimezone, getAvailableTimezones } from '../services/timezoneService';
 
 function Admin() {
   const [meals, setMeals] = useState([]);
@@ -11,10 +12,39 @@ function Admin() {
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [debugEmail, setDebugEmail] = useState('');
+  const [timezone, setTimezone] = useState('');
+  const [availableTimezones, setAvailableTimezones] = useState([]);
+  const [savingTimezone, setSavingTimezone] = useState(false);
 
   useEffect(() => {
     loadMeals();
+    loadTimezone();
   }, []);
+
+  const loadTimezone = async () => {
+    try {
+      const tz = await getUserTimezone();
+      setTimezone(tz);
+      const tzList = getAvailableTimezones();
+      setAvailableTimezones(tzList);
+    } catch (error) {
+      console.error('Error loading timezone:', error);
+    }
+  };
+
+  const handleTimezoneChange = async (newTimezone) => {
+    try {
+      setSavingTimezone(true);
+      await setUserTimezone(newTimezone);
+      setTimezone(newTimezone);
+      alert('Timezone saved successfully! Please reload the page for changes to take effect.');
+    } catch (error) {
+      console.error('Error saving timezone:', error);
+      alert('Error saving timezone. Please try again.');
+    } finally {
+      setSavingTimezone(false);
+    }
+  };
 
   const loadMeals = async () => {
     try {
@@ -192,6 +222,49 @@ function Admin() {
               </Card>
             </Grid>
           </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Timezone Settings */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'bold' }}>
+            🌍 Timezone Settings
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
+            Set your timezone to ensure all dates and times are displayed correctly. All data is stored in UTC and converted to your timezone for display.
+          </Typography>
+
+          <Box sx={{ mb: 2 }}>
+            <Autocomplete
+              value={timezone}
+              onChange={(event, newValue) => {
+                if (newValue) {
+                  handleTimezoneChange(newValue);
+                }
+              }}
+              options={availableTimezones}
+              disabled={savingTimezone}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Select Timezone"
+                  placeholder="Search for your timezone..."
+                  variant="outlined"
+                />
+              )}
+              sx={{ maxWidth: 500 }}
+            />
+          </Box>
+
+          <Alert severity="info" sx={{ mt: 2 }}>
+            <strong>Current timezone:</strong> {timezone || 'Loading...'}
+            <br />
+            <Typography variant="caption">
+              Current local time: {new Date().toLocaleString('en-US', { timeZone: timezone })}
+            </Typography>
+          </Alert>
         </CardContent>
       </Card>
 

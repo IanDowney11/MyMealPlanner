@@ -44,6 +44,7 @@ import { getMeals, initDB, saveMealPlan, deleteMealPlan, getWeekMealPlans, copyL
 import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsService';
 import EventModal from '../components/EventModal';
 import VersionSelectionModal from '../components/VersionSelectionModal';
+import { getUserTimezone } from '../services/timezoneService';
 
 const MEAL_TYPE = 'meal';
 
@@ -55,6 +56,7 @@ function MealPlannerContent() {
   const [weeklyPlan, setWeeklyPlan] = useState({});
   const [currentWeekStart, setCurrentWeekStart] = useState(null);
   const [selectedWeekOffset, setSelectedWeekOffset] = useState(0);
+  const [timezone, setTimezone] = useState('UTC');
 
   // Mobile modal state
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
@@ -100,10 +102,14 @@ function MealPlannerContent() {
   };
 
   const formatDate = (date) => {
-    // Use local time instead of UTC to avoid timezone issues
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    // Format date in user's timezone
+    const dateStr = date.toLocaleString('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const [month, day, year] = dateStr.split('/');
     return `${year}-${month}-${day}`;
   };
 
@@ -117,11 +123,12 @@ function MealPlannerContent() {
     const tomorrowStr = formatDate(tomorrow);
 
     if (dateStr === todayStr) {
-      return `Today (${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
+      return `Today (${date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric' })})`;
     } else if (dateStr === tomorrowStr) {
-      return `Tomorrow (${date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`;
+      return `Tomorrow (${date.toLocaleDateString('en-US', { timeZone: timezone, month: 'short', day: 'numeric' })})`;
     } else {
-      return date.toLocaleDateString(undefined, {
+      return date.toLocaleDateString('en-US', {
+        timeZone: timezone,
         weekday: 'long',
         month: 'short',
         day: 'numeric'
@@ -132,6 +139,7 @@ function MealPlannerContent() {
   const weekDates = getWeekDates(selectedWeekOffset);
 
   useEffect(() => {
+    loadTimezone();
     loadMeals();
     loadWeekPlan();
     loadWeekEvents();
@@ -139,6 +147,15 @@ function MealPlannerContent() {
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  const loadTimezone = async () => {
+    try {
+      const tz = await getUserTimezone();
+      setTimezone(tz);
+    } catch (error) {
+      console.error('Error loading timezone:', error);
+    }
+  };
 
   useEffect(() => {
     if (weekDates.length > 0) {
@@ -174,13 +191,20 @@ function MealPlannerContent() {
     try {
       if (weekDates.length > 0) {
         const mondayStr = formatDate(weekDates[0]);
+        console.log('Loading week plan for Monday:', mondayStr);
         const weekPlans = await getWeekMealPlans(mondayStr);
+        console.log('Loaded week plans:', weekPlans);
 
         const planMap = {};
         weekPlans.forEach(plan => {
-          planMap[plan.date] = plan.meal;
+          // Store the full plan object (including fromFreezer property)
+          planMap[plan.date] = {
+            meal: plan.meal,
+            fromFreezer: plan.fromFreezer
+          };
         });
 
+        console.log('Plan map:', planMap);
         setWeeklyPlan(planMap);
       }
     } catch (error) {
@@ -224,7 +248,10 @@ function MealPlannerContent() {
       // Update weekly plan with the updated meal data and fromFreezer info
       setWeeklyPlan(prev => ({
         ...prev,
-        [dateStr]: savedPlan
+        [dateStr]: {
+          meal: savedPlan.meal,
+          fromFreezer: savedPlan.fromFreezer
+        }
       }));
 
       // Reload meals to update freezer counts in sidebar

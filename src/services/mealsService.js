@@ -1,11 +1,41 @@
 import { supabase } from '../lib/supabase';
+import { getUserTimezone } from './timezoneService';
 
-// Helper function to format date in local timezone (not UTC)
+// Helper function to format date in user's timezone (not UTC)
 // This prevents timezone offset issues where dates might shift by a day
-function formatLocalDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+async function formatDateInUserTimezone(date) {
+  const timezone = await getUserTimezone();
+
+  // If date is a string, parse it
+  if (typeof date === 'string') {
+    date = new Date(date);
+  }
+
+  // Format the date in the user's timezone
+  const dateStr = date.toLocaleString('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const [month, day, year] = dateStr.split('/');
+  return `${year}-${month}-${day}`;
+}
+
+// Get today's date in the user's timezone
+async function getTodayInUserTimezone() {
+  const timezone = await getUserTimezone();
+  const now = new Date();
+
+  const dateStr = now.toLocaleString('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const [month, day, year] = dateStr.split('/');
   return `${year}-${month}-${day}`;
 }
 
@@ -261,11 +291,11 @@ export async function saveMealPlan(date, meal, useFromFreezer = null) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
-    const weekKey = getWeekKey(dateStr);
+    const dateStr = typeof date === 'string' ? date : await formatDateInUserTimezone(date);
+    const weekKey = await getWeekKey(dateStr);
 
     // Check if this is a past date and automatically mark as eaten
-    const today = formatLocalDate(new Date());
+    const today = await getTodayInUserTimezone();
     const isPastDate = dateStr < today;
 
     // Determine if we should use from freezer
@@ -356,7 +386,7 @@ export async function getMealPlan(date) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
+    const dateStr = typeof date === 'string' ? date : await formatDateInUserTimezone(date);
 
     const { data, error } = await supabase
       .from('meal_plans')
@@ -419,7 +449,7 @@ export async function deleteMealPlan(date) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const dateStr = typeof date === 'string' ? date : formatLocalDate(date);
+    const dateStr = typeof date === 'string' ? date : await formatDateInUserTimezone(date);
 
     // First get the meal plan to check if it was from freezer
     const existingPlan = await getMealPlan(dateStr);
@@ -482,17 +512,52 @@ export async function deleteMealPlan(date) {
 }
 
 // Utility functions
-function getWeekKey(dateStr) {
-  const date = new Date(dateStr);
-  const monday = getMonday(date);
-  return formatLocalDate(monday);
+async function getWeekKey(dateStr) {
+  const timezone = await getUserTimezone();
+
+  // Parse date string in user's timezone
+  const [year, month, day] = dateStr.split('-').map(Number);
+
+  // Create a date representing this day at noon in the user's timezone
+  // Using noon to avoid any edge cases with midnight
+  const dateInTz = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00`);
+
+  // Get the day of week in user's timezone
+  const dayOfWeek = parseInt(dateInTz.toLocaleString('en-US', {
+    timeZone: timezone,
+    weekday: 'narrow'
+  }).charCodeAt(0)) % 7; // Convert to 0=Sunday, 1=Monday, etc.
+
+  // Calculate Monday of this week
+  const monday = new Date(dateInTz);
+  const daysToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+  monday.setDate(monday.getDate() + daysToMonday);
+
+  return await formatDateInUserTimezone(monday);
 }
 
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+async function getMonday(dateStr) {
+  const timezone = await getUserTimezone();
+
+  // Parse date string
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(year, month - 1, day, 12, 0, 0);
+
+  // Get day of week in user's timezone
+  const dayStr = date.toLocaleString('en-US', {
+    timeZone: timezone,
+    weekday: 'short'
+  });
+
+  const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+  const dayOfWeek = dayMap[dayStr];
+
+  // Calculate Monday
+  const daysToSubtract = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+  const monday = new Date(date);
+  monday.setDate(monday.getDate() - daysToSubtract);
+
+  return await formatDateInUserTimezone(monday);
 }
 
 // Database initialization and diagnostics
@@ -557,11 +622,12 @@ export async function copyLastWeekMealPlans(currentWeekKey) {
 
     console.log('Copying last week meals for week:', currentWeekKey);
 
-    // Calculate last week's key (7 days ago)
-    const currentMondayDate = new Date(currentWeekKey);
+    // Calculate last week's key (7 days ago) in user's timezone
+    const [year, month, day] = currentWeekKey.split('-').map(Number);
+    const currentMondayDate = new Date(year, month - 1, day, 12, 0, 0);
     const lastMondayDate = new Date(currentMondayDate);
     lastMondayDate.setDate(lastMondayDate.getDate() - 7);
-    const lastWeekKey = formatLocalDate(lastMondayDate);
+    const lastWeekKey = await formatDateInUserTimezone(lastMondayDate);
 
     console.log('Last week key:', lastWeekKey);
 
@@ -592,13 +658,15 @@ export async function copyLastWeekMealPlans(currentWeekKey) {
 
     for (const plan of lastWeekPlans) {
       // Calculate the corresponding date in current week
-      const lastWeekDate = new Date(plan.date);
+      const [lastYear, lastMonth, lastDay] = plan.date.split('-').map(Number);
+      const lastWeekDate = new Date(lastYear, lastMonth - 1, lastDay, 12, 0, 0);
       const dayOfWeek = lastWeekDate.getDay();
       const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Monday=0 system
 
-      const newDate = new Date(currentWeekKey);
+      const [currYear, currMonth, currDay] = currentWeekKey.split('-').map(Number);
+      const newDate = new Date(currYear, currMonth - 1, currDay, 12, 0, 0);
       newDate.setDate(newDate.getDate() + mondayOffset);
-      const newDateStr = formatLocalDate(newDate);
+      const newDateStr = await formatDateInUserTimezone(newDate);
 
       const newPlan = {
         user_id: user.id,

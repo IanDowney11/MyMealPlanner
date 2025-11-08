@@ -47,6 +47,15 @@ CREATE TABLE IF NOT EXISTS shopping_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- User settings table - stores user preferences and settings
+CREATE TABLE IF NOT EXISTS user_settings (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+    timezone TEXT NOT NULL DEFAULT 'UTC',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
 -- =============================================================================
 -- SHARING FUNCTIONALITY TABLES
 -- =============================================================================
@@ -103,6 +112,9 @@ CREATE INDEX IF NOT EXISTS meal_plans_user_date_idx ON meal_plans(user_id, date)
 CREATE INDEX IF NOT EXISTS shopping_items_user_id_idx ON shopping_items(user_id);
 CREATE INDEX IF NOT EXISTS shopping_items_created_at_idx ON shopping_items(created_at);
 
+-- User settings table indexes
+CREATE INDEX IF NOT EXISTS user_settings_user_id_idx ON user_settings(user_id);
+
 -- Sharing tables indexes
 CREATE INDEX IF NOT EXISTS idx_shared_lists_receiver ON shared_shopping_lists (receiver_user_id);
 CREATE INDEX IF NOT EXISTS idx_shared_lists_sender ON shared_shopping_lists (sender_user_id);
@@ -116,6 +128,7 @@ CREATE INDEX IF NOT EXISTS idx_shared_lists_processed ON shared_shopping_lists (
 ALTER TABLE meals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meal_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shopping_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shopping_list_sharing_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shared_shopping_lists ENABLE ROW LEVEL SECURITY;
@@ -157,6 +170,19 @@ CREATE POLICY IF NOT EXISTS "Users can update their own shopping items" ON shopp
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY IF NOT EXISTS "Users can delete their own shopping items" ON shopping_items
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- User settings table policies
+CREATE POLICY IF NOT EXISTS "Users can view their own settings" ON user_settings
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can insert their own settings" ON user_settings
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can update their own settings" ON user_settings
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY IF NOT EXISTS "Users can delete their own settings" ON user_settings
     FOR DELETE USING (auth.uid() = user_id);
 
 -- User profiles policies
@@ -240,6 +266,7 @@ $$;
 COMMENT ON TABLE meals IS 'Individual meal recipes created by users';
 COMMENT ON TABLE meal_plans IS 'Planned meals for specific dates with tracking data';
 COMMENT ON TABLE shopping_items IS 'Shopping list items for users';
+COMMENT ON TABLE user_settings IS 'User preferences and settings including timezone';
 COMMENT ON TABLE user_profiles IS 'User profile information including email for lookup';
 COMMENT ON TABLE shopping_list_sharing_permissions IS 'Permissions for users to share shopping lists with each other';
 COMMENT ON TABLE shared_shopping_lists IS 'Shared shopping lists between users';
@@ -263,6 +290,9 @@ COMMENT ON COLUMN meal_plans.cook_count IS 'Number of times this meal has been c
 -- Column comments for shopping items table
 COMMENT ON COLUMN shopping_items.item_name IS 'Name of the shopping item';
 COMMENT ON COLUMN shopping_items.is_completed IS 'Whether the item has been checked off the list';
+
+-- Column comments for user settings table
+COMMENT ON COLUMN user_settings.timezone IS 'User timezone preference (IANA timezone identifier)';
 
 -- Column comments for sharing tables
 COMMENT ON COLUMN shopping_list_sharing_permissions.receiver_user_id IS 'The user who grants permission to receive shared lists';
