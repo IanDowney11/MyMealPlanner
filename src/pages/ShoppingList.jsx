@@ -217,11 +217,36 @@ function ShoppingList() {
   };
 
   const handleToggleShoppingItem = async (id, currentStatus) => {
+    // Optimistic update - update UI immediately
+    setShoppingList(prevList => {
+      if (!prevList) return prevList;
+
+      return {
+        ...prevList,
+        shopping_list_items: prevList.shopping_list_items.map(item =>
+          item.id === id ? { ...item, is_completed: !currentStatus } : item
+        )
+      };
+    });
+
+    // Update database in background
     try {
       await toggleShoppingListItem(id, !currentStatus);
-      await loadData();
     } catch (error) {
       console.error('Error toggling shopping item:', error);
+
+      // Revert optimistic update on error
+      setShoppingList(prevList => {
+        if (!prevList) return prevList;
+
+        return {
+          ...prevList,
+          shopping_list_items: prevList.shopping_list_items.map(item =>
+            item.id === id ? { ...item, is_completed: currentStatus } : item
+          )
+        };
+      });
+
       alert('Error updating shopping item. Please try again.');
     }
   };
