@@ -1,9 +1,8 @@
 // Service Worker for Meal Planner PWA
-const CACHE_NAME = 'meal-planner-v1';
+const CACHE_NAME = `meal-planner-v${Date.now()}`;
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
+  '/assets/',
   '/manifest.webmanifest'
 ];
 
@@ -47,6 +46,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // Always fetch fresh in development (when running on localhost)
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    event.respondWith(fetch(event.request));
     return;
   }
 
