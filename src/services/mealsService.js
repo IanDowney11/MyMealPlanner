@@ -1,43 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { getUserTimezone } from './timezoneService';
-
-// Helper function to format date in user's timezone (not UTC)
-// This prevents timezone offset issues where dates might shift by a day
-async function formatDateInUserTimezone(date) {
-  const timezone = await getUserTimezone();
-
-  // If date is a string, parse it
-  if (typeof date === 'string') {
-    date = new Date(date);
-  }
-
-  // Format the date in the user's timezone
-  const dateStr = date.toLocaleString('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-
-  const [month, day, year] = dateStr.split('/');
-  return `${year}-${month}-${day}`;
-}
-
-// Get today's date in the user's timezone
-async function getTodayInUserTimezone() {
-  const timezone = await getUserTimezone();
-  const now = new Date();
-
-  const dateStr = now.toLocaleString('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-
-  const [month, day, year] = dateStr.split('/');
-  return `${year}-${month}-${day}`;
-}
+import { getUserTimezone, formatDateInUserTimezone, getTodayInUserTimezone } from './timezoneService';
 
 // Meals CRUD operations
 export async function getMeals(sortBy = 'created_at', sortOrder = 'desc') {

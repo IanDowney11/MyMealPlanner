@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
@@ -21,6 +22,7 @@ const supabase = createClient(
 );
 
 // Middleware
+app.use(helmet());
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
