@@ -29,7 +29,9 @@ import {
   ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import UserProfile from './UserProfile';
+import packageJson from '../../package.json';
 
+const APP_VERSION = packageJson.version;
 const drawerWidth = 280;
 
 function Navigation({ open, onToggle }) {
@@ -125,6 +127,14 @@ function Navigation({ open, onToggle }) {
           );
         })}
       </List>
+
+      {/* Version Number */}
+      <Typography
+        variant="caption"
+        sx={{ px: 3, py: 0.5, color: 'text.disabled' }}
+      >
+        v{APP_VERSION}
+      </Typography>
 
       {/* Bottom Section - User Profile */}
       <Box sx={{ mt: 'auto', p: 2 }}>
