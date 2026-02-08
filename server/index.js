@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,6 +8,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+const API_KEY = process.env.API_KEY;
+
+if (!API_KEY) {
+  console.warn('WARNING: API_KEY is not set. All protected endpoints will reject requests.');
+}
 
 // Initialize Supabase client with service role for server-side access
 const supabase = createClient(
@@ -15,8 +21,28 @@ const supabase = createClient(
 );
 
 // Middleware
-app.use(cors());
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
+
+// Rate limiting - 60 requests per minute per IP
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+app.use(limiter);
+
+// API key authentication middleware
+function requireApiKey(req, res, next) {
+  const key = req.headers['x-api-key'];
+  if (!API_KEY || key !== API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: invalid or missing API key' });
+  }
+  next();
+}
 
 // Helper function to format date in local timezone to YYYY-MM-DD format
 function formatLocalDate(date) {
@@ -101,7 +127,7 @@ async function getMealForDate(date, userId) {
 // API Routes
 
 // GET /api/meals/tonight - Returns tonight's planned meal
-app.get('/api/meals/tonight', async (req, res) => {
+app.get('/api/meals/tonight', requireApiKey, async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -132,7 +158,7 @@ app.get('/api/meals/tonight', async (req, res) => {
 });
 
 // GET /api/meals/tomorrow - Returns tomorrow's planned meal
-app.get('/api/meals/tomorrow', async (req, res) => {
+app.get('/api/meals/tomorrow', requireApiKey, async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -167,8 +193,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Debug endpoint to list recent meal plans for a user (production ready)
-app.get('/api/debug/mealplans', async (req, res) => {
+// Debug endpoint to list recent meal plans for a user
+app.get('/api/debug/mealplans', requireApiKey, async (req, res) => {
   try {
     const { userId } = req.query;
 
@@ -224,7 +250,7 @@ app.get('/api/test', (req, res) => {
 });
 
 // Database health check endpoint
-app.get('/api/debug/tables', async (req, res) => {
+app.get('/api/debug/tables', requireApiKey, async (req, res) => {
   try {
     // Test database connectivity
     const { count, error } = await supabase
