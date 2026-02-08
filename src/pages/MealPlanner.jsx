@@ -146,10 +146,14 @@ function MealPlannerContent() {
   const weekDates = getWeekDates(selectedWeekOffset);
 
   useEffect(() => {
-    loadTimezone();
-    loadMeals();
-    loadWeekPlan();
-    loadWeekEvents();
+    const init = async () => {
+      const tz = await loadTimezone();
+      // Only load data after timezone is resolved so date formatting is correct
+      loadMeals();
+      loadWeekPlanWithTimezone(tz);
+      loadWeekEventsWithTimezone(tz);
+    };
+    init();
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
@@ -159,19 +163,21 @@ function MealPlannerContent() {
     try {
       const tz = await getUserTimezone();
       setTimezone(tz);
+      return tz;
     } catch (error) {
       console.error('Error loading timezone:', error);
+      return 'UTC';
     }
   };
 
   useEffect(() => {
-    if (weekDates.length > 0) {
+    if (weekDates.length > 0 && timezone !== 'UTC') {
       const mondayStr = formatDate(weekDates[0]);
       setCurrentWeekStart(mondayStr);
       loadWeekPlan();
       loadWeekEvents();
     }
-  }, [selectedWeekOffset]);
+  }, [selectedWeekOffset, timezone]);
 
   const checkScreenSize = () => {
     const mobile = window.innerWidth <= 768;
@@ -194,24 +200,36 @@ function MealPlannerContent() {
     }
   };
 
+  // Format date using a specific timezone (for initial load before state is set)
+  const formatDateWithTz = (date, tz) => {
+    const dateStr = date.toLocaleString('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const [month, day, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+  };
+
   const loadWeekPlan = async () => {
+    return loadWeekPlanWithTimezone(timezone);
+  };
+
+  const loadWeekPlanWithTimezone = async (tz) => {
     try {
       if (weekDates.length > 0) {
-        const mondayStr = formatDate(weekDates[0]);
-        console.log('Loading week plan for Monday:', mondayStr);
+        const mondayStr = formatDateWithTz(weekDates[0], tz);
         const weekPlans = await getWeekMealPlans(mondayStr);
-        console.log('Loaded week plans:', weekPlans);
 
         const planMap = {};
         weekPlans.forEach(plan => {
-          // Store the full plan object (including fromFreezer property)
           planMap[plan.date] = {
             meal: plan.meal,
             fromFreezer: plan.fromFreezer
           };
         });
 
-        console.log('Plan map:', planMap);
         setWeeklyPlan(planMap);
       }
     } catch (error) {
@@ -220,13 +238,16 @@ function MealPlannerContent() {
   };
 
   const loadWeekEvents = async () => {
+    return loadWeekEventsWithTimezone(timezone);
+  };
+
+  const loadWeekEventsWithTimezone = async (tz) => {
     try {
       if (weekDates.length > 0) {
         const eventsMap = {};
 
-        // Load events for each day of the week
         for (const date of weekDates) {
-          const dateStr = formatDate(date);
+          const dateStr = formatDateWithTz(date, tz);
           const events = await getEventsForDate(dateStr);
           if (events.length > 0) {
             eventsMap[dateStr] = events;

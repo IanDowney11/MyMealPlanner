@@ -474,30 +474,8 @@ export async function deleteMealPlan(date) {
 }
 
 // Utility functions
-async function getWeekKey(dateStr) {
-  const timezone = await getUserTimezone();
 
-  // Parse date string in user's timezone
-  const [year, month, day] = dateStr.split('-').map(Number);
-
-  // Create a date representing this day at noon in the user's timezone
-  // Using noon to avoid any edge cases with midnight
-  const dateInTz = new Date(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T12:00:00`);
-
-  // Get the day of week in user's timezone
-  const dayOfWeek = parseInt(dateInTz.toLocaleString('en-US', {
-    timeZone: timezone,
-    weekday: 'narrow'
-  }).charCodeAt(0)) % 7; // Convert to 0=Sunday, 1=Monday, etc.
-
-  // Calculate Monday of this week
-  const monday = new Date(dateInTz);
-  const daysToMonday = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
-  monday.setDate(monday.getDate() + daysToMonday);
-
-  return await formatDateInUserTimezone(monday);
-}
-
+// Get the Monday date string for a given date, in the user's timezone
 async function getMonday(dateStr) {
   const timezone = await getUserTimezone();
 
@@ -520,6 +498,11 @@ async function getMonday(dateStr) {
   monday.setDate(monday.getDate() - daysToSubtract);
 
   return await formatDateInUserTimezone(monday);
+}
+
+// Week key is just the Monday of that week
+async function getWeekKey(dateStr) {
+  return getMonday(dateStr);
 }
 
 // Database initialization and diagnostics
