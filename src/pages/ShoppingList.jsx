@@ -175,8 +175,8 @@ function ShoppingList() {
   const handleAddToShoppingList = async (itemName) => {
     try {
       // Check for duplicates in shopping list (case insensitive)
+      const itemNameLower = itemName.trim().toLowerCase();
       if (shoppingList) {
-        const itemNameLower = itemName.trim().toLowerCase();
         const isDuplicate = shoppingItems.some(
           item => item.item_name.toLowerCase() === itemNameLower
         );
@@ -194,6 +194,19 @@ function ShoppingList() {
       } else {
         await addItemToShoppingList(shoppingList.id, itemName);
       }
+
+      // Auto-add to frequent items if not already there
+      const isInFrequentItems = frequentItems.some(
+        item => item.item_name.toLowerCase() === itemNameLower
+      );
+      if (!isInFrequentItems) {
+        try {
+          await addFrequentItem(itemName.trim());
+        } catch (err) {
+          console.error('Error auto-adding to frequent items:', err);
+        }
+      }
+
       await loadData();
     } catch (error) {
       console.error('Error adding item to shopping list:', error);
