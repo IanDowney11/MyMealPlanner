@@ -122,12 +122,16 @@ export function userTimezoneToUtc(date, timezone) {
 // Format a date as YYYY-MM-DD in the user's timezone
 export async function formatDateInUserTimezone(date) {
   const timezone = await getUserTimezone();
-  const tzDate = typeof date === 'string' ? utcToUserTimezone(date, timezone) : date;
 
-  const year = tzDate.getFullYear();
-  const month = String(tzDate.getMonth() + 1).padStart(2, '0');
-  const day = String(tzDate.getDate()).padStart(2, '0');
-
+  // Always use toLocaleString with timezone to get the correct date components
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const dateStr = dateObj.toLocaleString('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const [month, day, year] = dateStr.split('/');
   return `${year}-${month}-${day}`;
 }
 

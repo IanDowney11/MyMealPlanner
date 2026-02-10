@@ -283,24 +283,26 @@ export async function deleteMealPlan(date) {
 // Utility functions
 
 async function getMonday(dateStr) {
-  const timezone = await getUserTimezone();
-
+  // Parse the YYYY-MM-DD date string and find the Monday of that week
+  // Work entirely with date strings to avoid timezone shifting issues
   const [year, month, day] = dateStr.split('-').map(Number);
+
+  // Create a date at noon to avoid DST edge cases
   const date = new Date(year, month - 1, day, 12, 0, 0);
 
-  const dayStr = date.toLocaleString('en-US', {
-    timeZone: timezone,
-    weekday: 'short'
-  });
+  // getDay() is fine here since we constructed the date from local components
+  const dayOfWeek = date.getDay();
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-  const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
-  const dayOfWeek = dayMap[dayStr];
-
-  const daysToSubtract = (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
   const monday = new Date(date);
   monday.setDate(monday.getDate() - daysToSubtract);
 
-  return await formatDateInUserTimezone(monday);
+  // Extract year/month/day directly from the local Date object
+  // (safe because we constructed it from local components, not UTC)
+  const mYear = monday.getFullYear();
+  const mMonth = String(monday.getMonth() + 1).padStart(2, '0');
+  const mDay = String(monday.getDate()).padStart(2, '0');
+  return `${mYear}-${mMonth}-${mDay}`;
 }
 
 async function getWeekKey(dateStr) {

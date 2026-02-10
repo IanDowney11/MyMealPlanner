@@ -40,7 +40,8 @@ import {
   Clear as ClearIcon,
   Link as LinkIcon,
   ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon
+  ExpandLess as ExpandLessIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { useDrag, useDrop } from 'react-dnd';
 import DragDropProvider from '../components/DragDropProvider';
@@ -81,6 +82,7 @@ function MealPlannerContent() {
   const [eventMenuAnchor, setEventMenuAnchor] = useState(null);
   const [eventMenuData, setEventMenuData] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [mealSearchTerm, setMealSearchTerm] = useState('');
   const [mealsExpanded, setMealsExpanded] = useState(false);
 
   // Calculate week dates based on selected week offset
@@ -102,10 +104,18 @@ function MealPlannerContent() {
   };
 
   const getMonday = (date) => {
+    // Get the day-of-week in the user's timezone
+    const dayStr = date.toLocaleString('en-US', {
+      timeZone: timezone,
+      weekday: 'short'
+    });
+    const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+    const dayOfWeek = dayMap[dayStr];
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
     const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
+    d.setDate(d.getDate() - daysToSubtract);
+    return d;
   };
 
   const formatDate = (date) => {
@@ -969,6 +979,19 @@ function MealPlannerContent() {
             </Typography>
           </Box>
 
+          {/* Search */}
+          <TextField
+            placeholder="Search meals..."
+            value={mealSearchTerm}
+            onChange={(e) => setMealSearchTerm(e.target.value)}
+            size="small"
+            fullWidth
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }} />
+            }}
+          />
+
           {/* Tag Filter */}
           {(() => {
             const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
@@ -1056,10 +1079,12 @@ function MealPlannerContent() {
               </Typography>
               {meals
                 .filter(meal => {
-                  // Tag filtering
-                  return selectedTags.length === 0 ||
+                  const searchMatch = !mealSearchTerm || meal.title?.toLowerCase().includes(mealSearchTerm.toLowerCase());
+                  const tagMatch = selectedTags.length === 0 ||
                     selectedTags.every(tag => meal.tags?.includes(tag));
+                  return searchMatch && tagMatch;
                 })
+                .sort((a, b) => (a.title || '').localeCompare(b.title || ''))
                 .map(meal => (
                   <DraggableMealCard key={meal.id} meal={meal} />
                 ))}
@@ -1210,14 +1235,25 @@ function MealPlannerContent() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <MenuIcon color="primary" />
                 <Typography variant="h6" sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                  Available Meals ({meals.filter(meal => {
-                    return selectedTags.length === 0 ||
-                      selectedTags.every(tag => meal.tags?.includes(tag));
-                  }).length})
+                  Available Meals ({meals.length})
                 </Typography>
               </Box>
             </AccordionSummary>
             <AccordionDetails sx={{ p: 2, bgcolor: 'grey.50' }}>
+              {/* Search */}
+              <TextField
+                placeholder="Search meals..."
+                value={mealSearchTerm}
+                onChange={(e) => setMealSearchTerm(e.target.value)}
+                size="small"
+                fullWidth
+                sx={{ mb: 2 }}
+                InputProps={{
+                  sx: { minHeight: 44 },
+                  startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: 18 }} />
+                }}
+              />
+
               {/* Tag Filter */}
               {(() => {
                 const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
@@ -1289,9 +1325,12 @@ function MealPlannerContent() {
                   </Typography>
                   {meals
                     .filter(meal => {
-                      return selectedTags.length === 0 ||
+                      const searchMatch = !mealSearchTerm || meal.title?.toLowerCase().includes(mealSearchTerm.toLowerCase());
+                      const tagMatch = selectedTags.length === 0 ||
                         selectedTags.every(tag => meal.tags?.includes(tag));
+                      return searchMatch && tagMatch;
                     })
+                    .sort((a, b) => (a.title || '').localeCompare(b.title || ''))
                     .map(meal => (
                       <DraggableMealCard key={meal.id} meal={meal} />
                     ))}

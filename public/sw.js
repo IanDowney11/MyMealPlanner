@@ -1,5 +1,5 @@
 // Service Worker for Meal Planner PWA
-const CACHE_VERSION = '1.2.0';
+const CACHE_VERSION = '2.0.1';
 const CACHE_NAME = `meal-planner-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',

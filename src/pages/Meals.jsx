@@ -10,7 +10,7 @@ function Meals() {
   const [editingMeal, setEditingMeal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState(null);
+  const [sortField, setSortField] = useState('title');
   const [sortDirection, setSortDirection] = useState('asc');
   const [selectedTags, setSelectedTags] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
