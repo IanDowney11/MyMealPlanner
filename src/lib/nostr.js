@@ -2,9 +2,9 @@ import { SimplePool, finalizeEvent, nip19 } from 'nostr-tools';
 
 const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
-  'wss://relay.nostr.band',
   'wss://nos.lol',
-  'wss://relay.snort.social'
+  'wss://relay.primal.net',
+  'wss://purplepag.es'
 ];
 
 const RELAY_STORAGE_KEY = 'nostr_relays';
@@ -23,7 +23,13 @@ export function getRelays() {
     const stored = localStorage.getItem(RELAY_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Filter out known problematic relays
+        const filtered = parsed.filter(r =>
+          !r.includes('relay.nostr.band') && !r.includes('relay.snort.social')
+        );
+        return filtered.length > 0 ? filtered : DEFAULT_RELAYS;
+      }
     }
   } catch (e) {
     // ignore
