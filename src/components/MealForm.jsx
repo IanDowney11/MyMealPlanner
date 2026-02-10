@@ -3,6 +3,7 @@ import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, T
 import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon, Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/icons-material';
 import { getMeals } from '../services/mealsService';
 import { processImageFile } from '../utils/imageUtils';
+import { uploadImageToNostrBuild } from '../lib/imageUpload';
 
 function MealForm({ meal = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -97,11 +98,19 @@ function MealForm({ meal = null, onSave, onCancel }) {
       try {
         setIsProcessingImage(true);
 
-        // Process and resize image to max 50KB
+        // Process and resize image to max 50KB for preview
         const resizedImageData = await processImageFile(file, 50);
-
-        setFormData(prev => ({ ...prev, image: resizedImageData }));
         setImagePreview(resizedImageData);
+
+        // Upload to nostr.build
+        try {
+          const imageUrl = await uploadImageToNostrBuild(resizedImageData);
+          setFormData(prev => ({ ...prev, image: imageUrl }));
+          setImagePreview(imageUrl);
+        } catch (uploadError) {
+          console.warn('nostr.build upload failed, using base64 fallback:', uploadError);
+          setFormData(prev => ({ ...prev, image: resizedImageData }));
+        }
       } catch (error) {
         console.error('Error processing image:', error);
         alert('Error processing image. Please try a different image.');

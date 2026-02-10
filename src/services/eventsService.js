@@ -1,18 +1,19 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
+import { queueSync } from './syncService';
 
 export async function getEvents() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const events = await db.calendarEvents.toArray();
+    // Sort by created_at descending
+    events.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
 
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
+    // Add snake_case aliases for UI compat
+    return events.map(event => ({
+      ...event,
+      monthly_pattern: event.monthlyPattern,
+      monthly_week: event.monthlyWeek,
+      monthly_day_of_week: event.monthlyDayOfWeek
+    }));
   } catch (error) {
     console.error('Error fetching events:', error);
     throw error;
@@ -21,53 +22,28 @@ export async function getEvents() {
 
 export async function saveEvent(event) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const now = new Date().toISOString();
 
     const eventData = {
-      user_id: user.id,
+      id: event.id || crypto.randomUUID(),
       title: event.title,
       type: event.type,
       date: event.date,
-      monthly_pattern: event.monthlyPattern || null,
-      monthly_week: event.monthlyWeek || null,
-      monthly_day_of_week: event.monthlyDayOfWeek ?? null,
-      updated_at: new Date().toISOString()
+      monthlyPattern: event.monthlyPattern || event.monthly_pattern || null,
+      monthlyWeek: event.monthlyWeek || event.monthly_week || null,
+      monthlyDayOfWeek: event.monthlyDayOfWeek ?? event.monthly_day_of_week ?? null,
+      // snake_case aliases for UI compat
+      monthly_pattern: event.monthlyPattern || event.monthly_pattern || null,
+      monthly_week: event.monthlyWeek || event.monthly_week || null,
+      monthly_day_of_week: event.monthlyDayOfWeek ?? event.monthly_day_of_week ?? null,
+      created_at: event.created_at || now,
+      updatedAt: now
     };
 
-    // Only include ID for updates, not for new inserts
-    if (event.id) {
-      eventData.id = event.id;
-    }
+    await db.calendarEvents.put(eventData);
+    queueSync('event', eventData.id, event.id ? 'update' : 'create');
 
-    // If event has an ID, update it; otherwise, create new
-    let result;
-    if (event.id) {
-      // Update existing event
-      const { data, error } = await supabase
-        .from('events')
-        .update(eventData)
-        .eq('id', event.id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    } else {
-      // Create new event
-      eventData.created_at = new Date().toISOString();
-      const { data, error } = await supabase
-        .from('events')
-        .insert([eventData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      result = data;
-    }
-
-    return result;
+    return eventData;
   } catch (error) {
     console.error('Error saving event:', error);
     throw error;
@@ -76,16 +52,8 @@ export async function saveEvent(event) {
 
 export async function deleteEvent(eventId) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', eventId)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
+    await db.calendarEvents.delete(eventId);
+    queueSync('event', eventId, 'delete');
     return true;
   } catch (error) {
     console.error('Error deleting event:', error);
@@ -95,18 +63,15 @@ export async function deleteEvent(eventId) {
 
 export async function getEventById(eventId) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const event = await db.calendarEvents.get(eventId);
+    if (!event) return null;
 
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', eventId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (error) throw error;
-    return data;
+    return {
+      ...event,
+      monthly_pattern: event.monthlyPattern,
+      monthly_week: event.monthlyWeek,
+      monthly_day_of_week: event.monthlyDayOfWeek
+    };
   } catch (error) {
     console.error('Error fetching event:', error);
     throw error;
@@ -115,9 +80,6 @@ export async function getEventById(eventId) {
 
 export async function getEventsForDate(date) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
     const events = await getEvents();
     const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
     const targetDate = new Date(dateStr);
@@ -126,7 +88,6 @@ export async function getEventsForDate(date) {
       if (event.type === 'one-time') {
         return event.date === dateStr;
       } else if (event.type === 'weekly') {
-        // Check if it's the same day of the week
         const eventDate = new Date(event.date);
         return eventDate.getDay() === targetDate.getDay();
       } else if (event.type === 'monthly') {
@@ -142,24 +103,20 @@ export async function getEventsForDate(date) {
 
 // Helper function to check if a date matches a monthly recurring pattern
 function matchesMonthlyPattern(event, targetDate) {
-  const monthlyPattern = event.monthly_pattern;
+  const monthlyPattern = event.monthly_pattern || event.monthlyPattern;
 
   if (monthlyPattern === 'date') {
-    // Same date each month (e.g., 15th of every month)
     const eventDate = new Date(event.date);
     return targetDate.getDate() === eventDate.getDate();
   } else if (monthlyPattern === 'day-of-week') {
-    // Same day of week pattern (e.g., first Tuesday, last Wednesday)
     const targetDayOfWeek = targetDate.getDay();
-    const monthlyDayOfWeek = event.monthly_day_of_week;
-    const monthlyWeek = event.monthly_week;
+    const monthlyDayOfWeek = event.monthly_day_of_week ?? event.monthlyDayOfWeek;
+    const monthlyWeek = event.monthly_week || event.monthlyWeek;
 
-    // First, check if the day of week matches
     if (targetDayOfWeek !== monthlyDayOfWeek) {
       return false;
     }
 
-    // Now check if it's the correct week of the month
     return isCorrectWeekOfMonth(targetDate, monthlyWeek);
   }
 
@@ -181,10 +138,6 @@ function isCorrectWeekOfMonth(date, weekPattern) {
   } else if (weekPattern === 'fourth') {
     return dayOfMonth >= 22 && dayOfMonth <= 28;
   } else if (weekPattern === 'last') {
-    // Check if this is the last occurrence of this day of week in the month
-    const dayOfWeek = date.getDay();
-
-    // Check if adding 7 days would put us in the next month
     const nextWeek = new Date(year, month, dayOfMonth + 7);
     return nextWeek.getMonth() !== month;
   }

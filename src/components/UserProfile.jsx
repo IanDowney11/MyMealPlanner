@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Typography,
@@ -15,31 +15,15 @@ import {
   ExitToApp as LogoutIcon,
   Login as LoginIcon
 } from '@mui/icons-material'
-import { useAuth } from '../contexts/AuthContext'
-import AuthModal from './AuthModal'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/NostrAuthContext'
+import NostrLoginModal from './NostrLoginModal'
 
 function UserProfile() {
-  const { user, signOut, getUserProfile } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [anchorEl, setAnchorEl] = useState(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
-  const [profile, setProfile] = useState(null)
-
-  useEffect(() => {
-    if (user) {
-      loadUserProfile()
-    } else {
-      setProfile(null)
-    }
-  }, [user])
-
-  const loadUserProfile = async () => {
-    try {
-      const profileData = await getUserProfile(user.id)
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    }
-  }
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget)
@@ -64,7 +48,7 @@ function UserProfile() {
   }
 
   if (user) {
-    const displayName = profile?.display_name || user.user_metadata?.display_name || 'User'
+    const displayName = user.displayName || 'User'
 
     return (
       <>
@@ -90,8 +74,8 @@ function UserProfile() {
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
                 {displayName}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {user.email}
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                {user.npub ? user.npub.slice(0, 16) + '...' : ''}
               </Typography>
             </Box>
           </Button>
@@ -104,7 +88,7 @@ function UserProfile() {
           anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
           transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         >
-          <MenuItem onClick={handleMenuClose}>
+          <MenuItem onClick={() => { handleMenuClose(); navigate('/admin'); }}>
             <ListItemIcon>
               <PersonIcon fontSize="small" />
             </ListItemIcon>
@@ -118,6 +102,11 @@ function UserProfile() {
             <ListItemText>Sign Out</ListItemText>
           </MenuItem>
         </Menu>
+
+        <NostrLoginModal
+          open={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+        />
       </>
     )
   }
@@ -141,7 +130,7 @@ function UserProfile() {
         Sign In
       </Button>
 
-      <AuthModal
+      <NostrLoginModal
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
       />

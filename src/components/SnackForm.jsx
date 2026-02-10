@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, FormControl, FormLabel, Input, CircularProgress } from '@mui/material';
 import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
 import { processImageFile } from '../utils/imageUtils';
+import { uploadImageToNostrBuild } from '../lib/imageUpload';
 
 function SnackForm({ snack = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -68,11 +69,19 @@ function SnackForm({ snack = null, onSave, onCancel }) {
       try {
         setIsProcessingImage(true);
 
-        // Process and resize image to max 50KB
+        // Process and resize image to max 50KB for preview
         const resizedImageData = await processImageFile(file, 50);
-
-        setFormData(prev => ({ ...prev, image: resizedImageData }));
         setImagePreview(resizedImageData);
+
+        // Upload to nostr.build
+        try {
+          const imageUrl = await uploadImageToNostrBuild(resizedImageData);
+          setFormData(prev => ({ ...prev, image: imageUrl }));
+          setImagePreview(imageUrl);
+        } catch (uploadError) {
+          console.warn('nostr.build upload failed, using base64 fallback:', uploadError);
+          setFormData(prev => ({ ...prev, image: resizedImageData }));
+        }
       } catch (error) {
         console.error('Error processing image:', error);
         alert('Error processing image. Please try a different image.');

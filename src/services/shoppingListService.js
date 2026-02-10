@@ -1,19 +1,17 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
+import { queueSync } from './syncService';
 
 // Frequent Items CRUD operations
 export async function getFrequentItems() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { data, error } = await supabase
-      .from('frequent_items')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('item_name', { ascending: true });
-
-    if (error) throw error;
-    return data || [];
+    const items = await db.frequentItems.toArray();
+    // Sort in JS since indexed fields are encrypted
+    items.sort((a, b) => (a.itemNameLower || '').localeCompare(b.itemNameLower || ''));
+    // Add snake_case alias for UI compat
+    return items.map(item => ({
+      ...item,
+      item_name: item.itemName
+    }));
   } catch (error) {
     console.error('Error fetching frequent items:', error);
     throw error;
@@ -22,26 +20,27 @@ export async function getFrequentItems() {
 
 export async function addFrequentItem(itemName) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
     if (!itemName.trim()) {
       throw new Error('Item name cannot be empty');
     }
 
+    // Check for duplicates manually since unique index won't work on encrypted data
+    const existing = await db.frequentItems.toArray();
+    const duplicate = existing.find(i => (i.itemNameLower || '') === itemName.trim().toLowerCase());
+    if (duplicate) {
+      return duplicate;
+    }
+
     const itemData = {
-      user_id: user.id,
+      id: crypto.randomUUID(),
+      itemName: itemName.trim(),
+      itemNameLower: itemName.trim().toLowerCase(),
       item_name: itemName.trim()
     };
 
-    const { data, error } = await supabase
-      .from('frequent_items')
-      .insert([itemData])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    await db.frequentItems.put(itemData);
+    queueSync('freqitems', 'all', 'update');
+    return itemData;
   } catch (error) {
     console.error('Error adding frequent item:', error);
     throw error;
@@ -50,16 +49,8 @@ export async function addFrequentItem(itemName) {
 
 export async function deleteFrequentItem(id) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { error } = await supabase
-      .from('frequent_items')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
+    await db.frequentItems.delete(id);
+    queueSync('freqitems', 'all', 'update');
     return true;
   } catch (error) {
     console.error('Error deleting frequent item:', error);
@@ -70,20 +61,26 @@ export async function deleteFrequentItem(id) {
 // Shopping List CRUD operations
 export async function getCurrentShoppingList() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const list = await db.shoppingLists.toCollection().first();
+    if (!list) return null;
 
-    const { data, error } = await supabase
-      .from('shopping_lists')
-      .select(`
-        *,
-        shopping_list_items (*)
-      `)
-      .eq('user_id', user.id)
-      .single();
+    const items = await db.shoppingListItems
+      .where('shoppingListId')
+      .equals(list.id)
+      .toArray();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    // Add snake_case aliases for UI compat
+    const mappedItems = items.map(item => ({
+      ...item,
+      item_name: item.itemName,
+      is_completed: item.isCompleted,
+      shopping_list_id: item.shoppingListId
+    }));
+
+    return {
+      ...list,
+      shopping_list_items: mappedItems
+    };
   } catch (error) {
     console.error('Error fetching shopping list:', error);
     throw error;
@@ -92,22 +89,17 @@ export async function getCurrentShoppingList() {
 
 export async function createShoppingList(name = 'Shopping List') {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
+    const now = new Date().toISOString();
     const listData = {
-      user_id: user.id,
-      name: name.trim()
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      created_at: now,
+      updatedAt: now
     };
 
-    const { data, error } = await supabase
-      .from('shopping_lists')
-      .insert([listData])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    await db.shoppingLists.put(listData);
+    queueSync('shoplist', listData.id, 'create');
+    return listData;
   } catch (error) {
     console.error('Error creating shopping list:', error);
     throw error;
@@ -116,16 +108,10 @@ export async function createShoppingList(name = 'Shopping List') {
 
 export async function deleteShoppingList(id) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { error } = await supabase
-      .from('shopping_lists')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
+    // Delete all items in the list
+    await db.shoppingListItems.where('shoppingListId').equals(id).delete();
+    await db.shoppingLists.delete(id);
+    queueSync('shoplist', id, 'delete');
     return true;
   } catch (error) {
     console.error('Error deleting shopping list:', error);
@@ -136,27 +122,24 @@ export async function deleteShoppingList(id) {
 // Shopping List Items CRUD operations
 export async function addItemToShoppingList(shoppingListId, itemName) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
     if (!itemName.trim()) {
       throw new Error('Item name cannot be empty');
     }
 
     const itemData = {
-      shopping_list_id: shoppingListId,
+      id: crypto.randomUUID(),
+      shoppingListId: shoppingListId,
+      itemName: itemName.trim(),
+      isCompleted: false,
+      // snake_case aliases for UI compat
       item_name: itemName.trim(),
-      is_completed: false
+      is_completed: false,
+      shopping_list_id: shoppingListId
     };
 
-    const { data, error } = await supabase
-      .from('shopping_list_items')
-      .insert([itemData])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
+    await db.shoppingListItems.put(itemData);
+    queueSync('shoplist', shoppingListId, 'update');
+    return itemData;
   } catch (error) {
     console.error('Error adding item to shopping list:', error);
     throw error;
@@ -165,18 +148,24 @@ export async function addItemToShoppingList(shoppingListId, itemName) {
 
 export async function toggleShoppingListItem(id, isCompleted) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+    const item = await db.shoppingListItems.get(id);
+    if (!item) return null;
 
-    const { data, error } = await supabase
-      .from('shopping_list_items')
-      .update({ is_completed: isCompleted })
-      .eq('id', id)
-      .select()
-      .single();
+    const updated = {
+      ...item,
+      isCompleted,
+      is_completed: isCompleted
+    };
 
-    if (error) throw error;
-    return data;
+    await db.shoppingListItems.put(updated);
+    queueSync('shoplist', item.shoppingListId, 'update');
+
+    return {
+      ...updated,
+      item_name: updated.itemName,
+      is_completed: updated.isCompleted,
+      shopping_list_id: updated.shoppingListId
+    };
   } catch (error) {
     console.error('Error toggling shopping list item:', error);
     throw error;
@@ -185,15 +174,11 @@ export async function toggleShoppingListItem(id, isCompleted) {
 
 export async function deleteShoppingListItem(id) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { error } = await supabase
-      .from('shopping_list_items')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
+    const item = await db.shoppingListItems.get(id);
+    await db.shoppingListItems.delete(id);
+    if (item) {
+      queueSync('shoplist', item.shoppingListId, 'update');
+    }
     return true;
   } catch (error) {
     console.error('Error deleting shopping list item:', error);
@@ -227,19 +212,20 @@ export async function deleteShoppingItem(id) {
 
 export async function clearCompletedItems() {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
     const shoppingList = await getCurrentShoppingList();
     if (!shoppingList) return true;
 
-    const { error } = await supabase
-      .from('shopping_list_items')
-      .delete()
-      .eq('shopping_list_id', shoppingList.id)
-      .eq('is_completed', true);
+    const completedItems = await db.shoppingListItems
+      .where('shoppingListId')
+      .equals(shoppingList.id)
+      .filter(item => item.isCompleted)
+      .toArray();
 
-    if (error) throw error;
+    for (const item of completedItems) {
+      await db.shoppingListItems.delete(item.id);
+    }
+
+    queueSync('shoplist', shoppingList.id, 'update');
     return true;
   } catch (error) {
     console.error('Error clearing completed items:', error);
@@ -247,26 +233,7 @@ export async function clearCompletedItems() {
   }
 }
 
-// Database initialization
+// Database initialization - no-op for Dexie
 export async function initDB() {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return Promise.resolve();
-    }
-
-    // Test if new tables exist
-    const { error: tableError } = await supabase
-      .from('frequent_items')
-      .select('count')
-      .limit(1);
-
-    if (tableError) {
-      console.error('Shopping list tables error:', tableError);
-    }
-  } catch (error) {
-    console.error('Error checking shopping list tables:', error);
-  }
-
   return Promise.resolve();
 }

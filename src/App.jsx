@@ -3,7 +3,7 @@ import { BrowserRouter as Router } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { CssBaseline } from '@mui/material'
 import theme from './theme/theme'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { NostrAuthProvider, useAuth } from './contexts/NostrAuthContext'
 import LandingPage from './components/LandingPage'
 import ProtectedApp from './components/ProtectedApp'
 
@@ -21,11 +21,11 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AuthProvider>
+      <NostrAuthProvider>
         <Router>
           <AppContent />
         </Router>
-      </AuthProvider>
+      </NostrAuthProvider>
     </ThemeProvider>
   )
 }
