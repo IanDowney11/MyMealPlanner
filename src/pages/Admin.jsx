@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input, Autocomplete, TextField } from '@mui/material';
 import { FileDownload as ExportIcon, FileUpload as ImportIcon, BugReport as DebugIcon, Public as TimezoneIcon } from '@mui/icons-material';
 import { getMeals, saveMeal, initDB } from '../services/mealsService';
+import { getFrequentItems, addFrequentItem } from '../services/shoppingListService';
 import { testSupabaseConnection } from '../utils/debugSupabase';
 import { debugSharingSetup } from '../services/sharingService';
 import { getUserTimezone, setUserTimezone, getAvailableTimezones } from '../services/timezoneService';
@@ -11,6 +12,9 @@ function Admin() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [frequentItems, setFrequentItems] = useState([]);
+  const [exportingFreqItems, setExportingFreqItems] = useState(false);
+  const [importingFreqItems, setImportingFreqItems] = useState(false);
   const [debugEmail, setDebugEmail] = useState('');
   const [timezone, setTimezone] = useState('');
   const [availableTimezones, setAvailableTimezones] = useState([]);
@@ -18,6 +22,7 @@ function Admin() {
 
   useEffect(() => {
     loadMeals();
+    loadFrequentItems();
     loadTimezone();
   }, []);
 
@@ -56,6 +61,114 @@ function Admin() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadFrequentItems = async () => {
+    try {
+      const items = await getFrequentItems();
+      setFrequentItems(items);
+    } catch (error) {
+      console.error('Error loading frequent items:', error);
+    }
+  };
+
+  const exportFrequentItems = async () => {
+    try {
+      setExportingFreqItems(true);
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        version: '1.0',
+        totalItems: frequentItems.length,
+        frequentItems: frequentItems.map(item => ({ item_name: item.item_name }))
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `meal-planner-frequent-items-${new Date().toISOString().split('T')[0]}.json`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+
+      alert(`Successfully exported ${frequentItems.length} frequent items to JSON file!`);
+    } catch (error) {
+      console.error('Error exporting frequent items:', error);
+      alert('Error exporting frequent items. Please try again.');
+    } finally {
+      setExportingFreqItems(false);
+    }
+  };
+
+  const handleFreqItemsImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/json') {
+      alert('Please select a valid JSON file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        setImportingFreqItems(true);
+        const jsonData = JSON.parse(e.target.result);
+
+        if (!jsonData.frequentItems || !Array.isArray(jsonData.frequentItems)) {
+          throw new Error('Invalid JSON format. Expected frequentItems array.');
+        }
+
+        const existingNames = new Set(frequentItems.map(item => item.item_name.toLowerCase()));
+        let importedCount = 0;
+        let skippedCount = 0;
+        let errorCount = 0;
+
+        for (const item of jsonData.frequentItems) {
+          try {
+            const itemName = item.item_name || item.itemName;
+            if (!itemName || !itemName.trim()) {
+              errorCount++;
+              continue;
+            }
+
+            if (existingNames.has(itemName.trim().toLowerCase())) {
+              skippedCount++;
+              continue;
+            }
+
+            await addFrequentItem(itemName.trim());
+            existingNames.add(itemName.trim().toLowerCase());
+            importedCount++;
+          } catch (itemError) {
+            console.error('Error importing frequent item:', item, itemError);
+            errorCount++;
+          }
+        }
+
+        await loadFrequentItems();
+
+        const parts = [`Successfully imported: ${importedCount} items`];
+        if (skippedCount > 0) parts.push(`Skipped (already exist): ${skippedCount} items`);
+        if (errorCount > 0) parts.push(`Failed to import: ${errorCount} items`);
+        alert(`Import completed:\n- ${parts.join('\n- ')}`);
+
+        event.target.value = '';
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        alert('Error importing frequent items. Please check that your JSON file is valid.');
+      } finally {
+        setImportingFreqItems(false);
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   const exportMeals = async () => {
@@ -367,6 +480,104 @@ function Admin() {
           <Alert severity="warning">
             <strong>⚠️ Important:</strong> Importing will add new meals to your collection.
             Meals with the same title may be duplicated. Make sure to backup your data before importing.
+          </Alert>
+        </CardContent>
+      </Card>
+
+      {/* Export Frequent Items */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'bold' }}>
+            📤 Export Frequent Items
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
+            Export your frequently purchased items to a JSON file for backup or transfer.
+          </Typography>
+
+          <Button
+            onClick={exportFrequentItems}
+            disabled={exportingFreqItems || frequentItems.length === 0}
+            variant="contained"
+            color="success"
+            startIcon={exportingFreqItems ? null : <ExportIcon />}
+            size="large"
+            sx={{ fontWeight: 'bold' }}
+          >
+            {exportingFreqItems ? (
+              <>⏳ Exporting...</>
+            ) : (
+              <>Export {frequentItems.length} Frequent Items to JSON</>
+            )}
+          </Button>
+
+          {frequentItems.length === 0 && (
+            <Typography variant="body2" color="error" sx={{ mt: 1, fontStyle: 'italic' }}>
+              No frequent items available to export. Add some items first!
+            </Typography>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Import Frequent Items */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h5" component="h2" sx={{ mb: 2, fontWeight: 'bold' }}>
+            📥 Import Frequent Items
+          </Typography>
+
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2.5, lineHeight: 1.6 }}>
+            Import frequently purchased items from a JSON file. Duplicate items (same name) will be skipped.
+          </Typography>
+
+          <Box sx={{
+            border: '2px dashed',
+            borderColor: 'grey.300',
+            borderRadius: 1,
+            p: 3,
+            textAlign: 'center',
+            mb: 2,
+            backgroundColor: 'grey.50'
+          }}>
+            <Input
+              type="file"
+              inputProps={{ accept: '.json' }}
+              onChange={handleFreqItemsImport}
+              disabled={importingFreqItems}
+              sx={{ display: 'none' }}
+              id="freq-items-file-input"
+            />
+            <label htmlFor="freq-items-file-input">
+              <Button
+                variant="outlined"
+                component="span"
+                startIcon={<ImportIcon />}
+                disabled={importingFreqItems}
+                sx={{ mb: 1.5 }}
+              >
+                Choose JSON File
+              </Button>
+            </label>
+
+            <Typography variant="body2" color="text.secondary">
+              {importingFreqItems ? (
+                <Box sx={{ color: 'primary.main' }}>
+                  ⏳ Importing frequent items...
+                </Box>
+              ) : (
+                <>
+                  Select a JSON file with frequent items
+                  <br />
+                  <Typography variant="caption" color="text.secondary">
+                    Supported format: JSON files with frequentItems array
+                  </Typography>
+                </>
+              )}
+            </Typography>
+          </Box>
+
+          <Alert severity="info">
+            Items with the same name as existing items will be skipped to prevent duplicates.
           </Alert>
         </CardContent>
       </Card>
