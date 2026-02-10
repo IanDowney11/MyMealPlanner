@@ -17,14 +17,13 @@ import {
   Sync as SyncIcon,
   Security as SecurityIcon,
   Devices as DevicesIcon,
-  Share as ShareIcon,
   LocalDining as SnackIcon,
   Api as ApiIcon,
   CloudSync as CloudIcon,
   TrendingUp as TrackingIcon,
   GitHub as GitHubIcon
 } from '@mui/icons-material';
-import AuthModal from './AuthModal';
+import NostrLoginModal from './NostrLoginModal';
 import PWAInstallPrompt from './PWAInstallPrompt';
 
 function LandingPage() {
@@ -43,18 +42,18 @@ function LandingPage() {
     },
     {
       icon: <ShoppingCartIcon sx={{ fontSize: 40, color: '#3498db' }} />,
-      title: 'Shopping & Sharing',
-      description: 'Create lists, share between users with permissions, and track completion status'
+      title: 'Shopping Lists',
+      description: 'Create lists, track completion status, and copy as text to share'
     },
     {
       icon: <SyncIcon sx={{ fontSize: 40, color: '#3498db' }} />,
-      title: 'Cloud Sync & API',
-      description: 'Real-time sync across devices plus REST API for Home Assistant integration'
+      title: 'NOSTR Sync',
+      description: 'Encrypted sync across devices via NOSTR relays - offline-first, decentralized'
     },
     {
       icon: <SecurityIcon sx={{ fontSize: 40, color: '#3498db' }} />,
       title: 'Secure & Private',
-      description: 'Row Level Security, encrypted storage, no data collection - your data stays yours'
+      description: 'NIP-44 encrypted data, NOSTR key-based identity, no data collection - your data stays yours'
     },
     {
       icon: <DevicesIcon sx={{ fontSize: 40, color: '#3498db' }} />,
@@ -90,7 +89,7 @@ function LandingPage() {
             mx: 'auto'
           }}>
             The complete meal planning solution with recipe management, smart weekly planning,
-            shopping lists, snack discovery, external recipe integration, and Home Assistant API support.
+            shopping lists, snack discovery, and external recipe integration. Powered by NOSTR for decentralized, encrypted sync.
           </Typography>
 
 
@@ -112,7 +111,7 @@ function LandingPage() {
               transition: 'all 0.3s ease'
             }}
           >
-            Get Started - Sign Up / Sign In
+            Get Started - Sign In with NOSTR
           </Button>
         </Box>
 
@@ -203,22 +202,22 @@ function LandingPage() {
                 <ApiIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
                   <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
-                    External Integration
+                    Recipe Discovery
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'grey.700' }}>
-                    Import from 10,000+ Spoonacular recipes or integrate with Home Assistant
+                    Import from 10,000+ Spoonacular recipes to build your collection
                   </Typography>
                 </Box>
               </Box>
 
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <ShareIcon sx={{ fontSize: 40, color: '#3498db' }} />
+                <CloudIcon sx={{ fontSize: 40, color: '#3498db' }} />
                 <Box>
                   <Typography variant="h6" sx={{ mb: 0.5, color: 'grey.900', fontWeight: 'bold' }}>
-                    Smart Sharing
+                    Offline First
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'grey.700' }}>
-                    Permission-based shopping list sharing between family members
+                    Works without internet - data stored locally with encrypted cloud backup
                   </Typography>
                 </Box>
               </Box>
@@ -270,7 +269,7 @@ function LandingPage() {
                 transition: 'all 0.3s ease'
               }}
             >
-              Ready to Start Planning? Sign In Here
+              Ready to Start Planning? Sign In with NOSTR
             </Button>
 
             <Button
@@ -302,7 +301,7 @@ function LandingPage() {
 
       </Container>
 
-      <AuthModal
+      <NostrLoginModal
         open={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
       />

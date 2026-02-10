@@ -17,14 +17,7 @@ import {
   CircularProgress,
   Chip,
   Card,
-  CardContent,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Alert,
-  Tabs,
-  Tab
+  CardContent
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -34,10 +27,7 @@ import {
   CheckCircle as CheckCircleIcon,
   Star as StarIcon,
   PlaylistAdd as PlaylistAddIcon,
-  Share as ShareIcon,
-  Email as EmailIcon,
-  Inbox as InboxIcon,
-  Security as SecurityIcon
+  ContentCopy as CopyIcon
 } from '@mui/icons-material';
 import {
   getFrequentItems,
@@ -51,18 +41,6 @@ import {
   deleteShoppingListItem,
   initDB
 } from '../services/shoppingListService';
-import {
-  getSharingPermissions,
-  addSharingPermission,
-  deleteSharingPermission,
-  shareShoppingList,
-  getReceivedSharedLists,
-  acceptSharedList,
-  rejectSharedList,
-  initSharingDB
-} from '../services/sharingService';
-import SharingPermissions from '../components/SharingPermissions';
-import SharedListInbox from '../components/SharedListInbox';
 
 function ShoppingList() {
   // Main state
@@ -74,19 +52,10 @@ function ShoppingList() {
   const [addingFrequent, setAddingFrequent] = useState(false);
   const [addingShopping, setAddingShopping] = useState(false);
   const [creatingList, setCreatingList] = useState(false);
-
-  // Sharing state
-  const [tabValue, setTabValue] = useState(0);
-  const [sharingPermissions, setSharingPermissions] = useState([]);
-  const [sharedLists, setSharedLists] = useState([]);
-  const [sharingLoading, setSharingLoading] = useState(false);
-  const [shareDialog, setShareDialog] = useState({ open: false });
-  const [shareEmail, setShareEmail] = useState('');
-  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     loadData();
-    loadSharingData();
   }, []);
 
   const loadData = async () => {
@@ -105,27 +74,9 @@ function ShoppingList() {
     }
   };
 
-  const loadSharingData = async () => {
-    try {
-      setSharingLoading(true);
-      await initSharingDB();
-      const [permissionsData, sharedListsData] = await Promise.all([
-        getSharingPermissions(),
-        getReceivedSharedLists()
-      ]);
-      setSharingPermissions(permissionsData);
-      setSharedLists(sharedListsData);
-    } catch (error) {
-      console.error('Error loading sharing data:', error);
-    } finally {
-      setSharingLoading(false);
-    }
-  };
-
   const handleAddFrequentItem = async () => {
     if (!newFrequentItem.trim()) return;
 
-    // Check for duplicates (case insensitive)
     const itemNameLower = newFrequentItem.trim().toLowerCase();
     const isDuplicate = frequentItems.some(
       item => item.item_name.toLowerCase() === itemNameLower
@@ -174,7 +125,6 @@ function ShoppingList() {
 
   const handleAddToShoppingList = async (itemName) => {
     try {
-      // Check for duplicates in shopping list (case insensitive)
       const itemNameLower = itemName.trim().toLowerCase();
       if (shoppingList) {
         const isDuplicate = shoppingItems.some(
@@ -230,10 +180,9 @@ function ShoppingList() {
   };
 
   const handleToggleShoppingItem = async (id, currentStatus) => {
-    // Optimistic update - update UI immediately
+    // Optimistic update
     setShoppingList(prevList => {
       if (!prevList) return prevList;
-
       return {
         ...prevList,
         shopping_list_items: prevList.shopping_list_items.map(item =>
@@ -242,16 +191,13 @@ function ShoppingList() {
       };
     });
 
-    // Update database in background
     try {
       await toggleShoppingListItem(id, !currentStatus);
     } catch (error) {
       console.error('Error toggling shopping item:', error);
-
-      // Revert optimistic update on error
+      // Revert optimistic update
       setShoppingList(prevList => {
         if (!prevList) return prevList;
-
         return {
           ...prevList,
           shopping_list_items: prevList.shopping_list_items.map(item =>
@@ -259,7 +205,6 @@ function ShoppingList() {
           )
         };
       });
-
       alert('Error updating shopping item. Please try again.');
     }
   };
@@ -299,7 +244,6 @@ function ShoppingList() {
 
     if (window.confirm(`Remove ${checkedItemsCount} checked item${checkedItemsCount !== 1 ? 's' : ''} from the list?`)) {
       try {
-        // Delete all completed items
         await Promise.all(
           completedItems.map(item => deleteShoppingListItem(item.id))
         );
@@ -308,6 +252,30 @@ function ShoppingList() {
         console.error('Error removing checked items:', error);
         alert('Error removing checked items. Please try again.');
       }
+    }
+  };
+
+  const handleCopyAsText = async () => {
+    if (!shoppingList || shoppingItems.length === 0) return;
+
+    const lines = [];
+    if (pendingItems.length > 0) {
+      lines.push('Shopping List:');
+      pendingItems.forEach(item => lines.push(`  [ ] ${item.item_name}`));
+    }
+    if (completedItems.length > 0) {
+      if (lines.length > 0) lines.push('');
+      lines.push('Completed:');
+      completedItems.forEach(item => lines.push(`  [x] ${item.item_name}`));
+    }
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy to clipboard.');
     }
   };
 
@@ -321,54 +289,6 @@ function ShoppingList() {
     if (e.key === 'Enter') {
       handleAddNewShoppingItem();
     }
-  };
-
-  // Sharing handlers
-  const handleAddSharingPermission = async (senderEmail) => {
-    await addSharingPermission(senderEmail);
-    await loadSharingData();
-  };
-
-  const handleDeleteSharingPermission = async (permissionId) => {
-    await deleteSharingPermission(permissionId);
-    await loadSharingData();
-  };
-
-  const handleShareList = async () => {
-    if (!shoppingList || !shareEmail.trim()) return;
-
-    try {
-      setSharing(true);
-      await shareShoppingList(
-        shareEmail.trim(),
-        shoppingList.shopping_list_items || [],
-        shoppingList.name || 'Shopping List'
-      );
-      setShareDialog({ open: false });
-      setShareEmail('');
-      alert('Shopping list shared successfully!');
-    } catch (error) {
-      console.error('Error sharing list:', error);
-      alert(error.message || 'Failed to share shopping list. Please try again.');
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const handleAcceptSharedList = async (sharedListId, mergeWithExisting) => {
-    const result = await acceptSharedList(sharedListId, mergeWithExisting);
-    await loadSharingData();
-    await loadData(); // Refresh shopping list if items were added
-    return result;
-  };
-
-  const handleRejectSharedList = async (sharedListId) => {
-    await rejectSharedList(sharedListId);
-    await loadSharingData();
-  };
-
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
   };
 
   const shoppingItems = shoppingList?.shopping_list_items || [];
@@ -414,17 +334,17 @@ function ShoppingList() {
               {shoppingList && (
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   <Button
-                    onClick={() => setShareDialog({ open: true })}
+                    onClick={handleCopyAsText}
                     variant="contained"
                     color="inherit"
-                    startIcon={<ShareIcon />}
+                    startIcon={<CopyIcon />}
                     size="small"
                     sx={{
                       bgcolor: 'rgba(255,255,255,0.2)',
                       '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' }
                     }}
                   >
-                    Share
+                    {copied ? 'Copied!' : 'Copy as Text'}
                   </Button>
                   <Button
                     onClick={handleRemoveCheckedItems}
@@ -524,9 +444,7 @@ function ShoppingList() {
                         size="small"
                         sx={{
                           borderRadius: '4px',
-                          '& .MuiChip-label': {
-                            fontWeight: 500
-                          }
+                          '& .MuiChip-label': { fontWeight: 500 }
                         }}
                       />
                       <Chip
@@ -537,9 +455,7 @@ function ShoppingList() {
                         size="small"
                         sx={{
                           borderRadius: '4px',
-                          '& .MuiChip-label': {
-                            fontWeight: 500
-                          }
+                          '& .MuiChip-label': { fontWeight: 500 }
                         }}
                       />
                     </Box>
@@ -816,113 +732,6 @@ function ShoppingList() {
           </Card>
         </Box>
       </Box>
-
-      {/* Sharing Section */}
-      <Box sx={{ mt: 4 }}>
-        <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          <Tabs
-            value={tabValue}
-            onChange={handleTabChange}
-            variant="fullWidth"
-            sx={{
-              borderBottom: 1,
-              borderColor: 'divider',
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600
-              }
-            }}
-          >
-            <Tab
-              label={`Shared Lists Inbox${sharedLists.length > 0 ? ` (${sharedLists.length})` : ''}`}
-              icon={<InboxIcon />}
-              iconPosition="start"
-            />
-            <Tab
-              label="Sharing Permissions"
-              icon={<SecurityIcon />}
-              iconPosition="start"
-            />
-          </Tabs>
-
-          <Box sx={{ p: 3 }}>
-            {tabValue === 0 && (
-              <SharedListInbox
-                sharedLists={sharedLists}
-                loading={sharingLoading}
-                onAcceptList={handleAcceptSharedList}
-                onRejectList={handleRejectSharedList}
-                onRefresh={loadSharingData}
-              />
-            )}
-
-            {tabValue === 1 && (
-              <SharingPermissions
-                permissions={sharingPermissions}
-                loading={sharingLoading}
-                onAddPermission={handleAddSharingPermission}
-                onDeletePermission={handleDeleteSharingPermission}
-                onRefresh={loadSharingData}
-              />
-            )}
-          </Box>
-        </Paper>
-      </Box>
-
-      {/* Share Dialog */}
-      <Dialog
-        open={shareDialog.open}
-        onClose={() => setShareDialog({ open: false })}
-        maxWidth="sm"
-        fullWidth
-        aria-labelledby="share-dialog-title"
-      >
-        <DialogTitle id="share-dialog-title">
-          Share Shopping List
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Enter the email address of the person you want to share your shopping list with.
-            They must have given you permission to share lists with them.
-          </Typography>
-
-          <TextField
-            fullWidth
-            value={shareEmail}
-            onChange={(e) => setShareEmail(e.target.value)}
-            placeholder="Enter recipient's email address..."
-            variant="outlined"
-            label="Recipient Email"
-            disabled={sharing}
-            InputProps={{
-              startAdornment: <EmailIcon color="action" sx={{ mr: 1 }} />
-            }}
-          />
-
-          {shoppingList && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              Sharing "{shoppingList.name || 'Shopping List'}" with {shoppingItems.length} items.
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => setShareDialog({ open: false })}
-            color="inherit"
-            disabled={sharing}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleShareList}
-            variant="contained"
-            disabled={!shareEmail.trim() || sharing}
-            startIcon={sharing ? <CircularProgress size={20} color="inherit" /> : <ShareIcon />}
-          >
-            {sharing ? 'Sharing...' : 'Share List'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

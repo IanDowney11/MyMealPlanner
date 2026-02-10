@@ -1,15 +1,13 @@
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 
 const TIMEZONE_STORAGE_KEY = 'user_timezone';
 
 // Get all available timezones
 export function getAvailableTimezones() {
-  // Using Intl.supportedValuesOf if available (modern browsers)
   if (Intl.supportedValuesOf) {
     return Intl.supportedValuesOf('timeZone');
   }
 
-  // Fallback to common timezones
   return [
     'America/New_York',
     'America/Chicago',
@@ -35,24 +33,14 @@ export function getAvailableTimezones() {
   ];
 }
 
-// Get the user's timezone from storage or database
+// Get the user's timezone from Dexie settings or localStorage
 export async function getUserTimezone() {
   try {
-    // First, check if user is authenticated and has a stored preference in DB
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data, error } = await supabase
-        .from('user_settings')
-        .select('timezone')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!error && data?.timezone) {
-        // Store in localStorage for quick access
-        localStorage.setItem(TIMEZONE_STORAGE_KEY, data.timezone);
-        return data.timezone;
-      }
+    // Check Dexie settings first
+    const setting = await db.settings.get('timezone');
+    if (setting?.value) {
+      localStorage.setItem(TIMEZONE_STORAGE_KEY, setting.value);
+      return setting.value;
     }
 
     // Fall back to localStorage
@@ -65,7 +53,6 @@ export async function getUserTimezone() {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   } catch (error) {
     console.error('Error getting user timezone:', error);
-    // Fall back to browser's timezone
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
 }
@@ -83,42 +70,8 @@ export async function setUserTimezone(timezone) {
     // Store in localStorage
     localStorage.setItem(TIMEZONE_STORAGE_KEY, timezone);
 
-    // If user is authenticated, save to database
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      // Check if settings exist
-      const { data: existing } = await supabase
-        .from('user_settings')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (existing) {
-        // Update existing settings
-        const { error } = await supabase
-          .from('user_settings')
-          .update({
-            timezone,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id);
-
-        if (error) throw error;
-      } else {
-        // Create new settings
-        const { error } = await supabase
-          .from('user_settings')
-          .insert([{
-            user_id: user.id,
-            timezone,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
-
-        if (error) throw error;
-      }
-    }
+    // Store in Dexie settings
+    await db.settings.put({ key: 'timezone', value: timezone });
 
     return true;
   } catch (error) {
@@ -141,7 +94,6 @@ export function utcToUserTimezone(utcDateStr, timezone) {
 // Convert a date in user's timezone to UTC
 export function userTimezoneToUtc(date, timezone) {
   try {
-    // Get the date string in the user's timezone
     const dateStr = date.toLocaleString('en-US', {
       timeZone: timezone,
       year: 'numeric',
@@ -153,12 +105,10 @@ export function userTimezoneToUtc(date, timezone) {
       hour12: false
     });
 
-    // Parse and create a date assuming it's in the specified timezone
     const [datePart, timePart] = dateStr.split(', ');
     const [month, day, year] = datePart.split('/');
     const [hour, minute, second] = timePart.split(':');
 
-    // Create date in user timezone then convert to UTC
     const tzDate = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}`);
     const utcDate = new Date(tzDate.toLocaleString('en-US', { timeZone: 'UTC' }));
 
@@ -186,7 +136,6 @@ export async function getTodayInUserTimezone() {
   const timezone = await getUserTimezone();
   const now = new Date();
 
-  // Format in user's timezone
   const dateStr = now.toLocaleString('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -203,30 +152,6 @@ export async function parseDateInUserTimezone(dateStr) {
   const timezone = await getUserTimezone();
   const [year, month, day] = dateStr.split('-').map(Number);
 
-  // Create a date string in the user's timezone at midnight
-  const tzDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`;
-
-  // Parse as if it's in the user's timezone
-  const date = new Date(tzDateStr);
-
-  // Get offset for this timezone
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-
-  const parts = formatter.formatToParts(date);
-  const tzYear = parts.find(p => p.type === 'year').value;
-  const tzMonth = parts.find(p => p.type === 'month').value;
-  const tzDay = parts.find(p => p.type === 'day').value;
-
-  // Create date in local time, then adjust for timezone
   const localDate = new Date(year, month - 1, day, 0, 0, 0, 0);
 
   return localDate.toISOString();
