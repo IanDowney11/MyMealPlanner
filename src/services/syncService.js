@@ -21,8 +21,11 @@ function getDTag(entityType, entityId) {
   }
 }
 
-// Queue a sync operation (called by service functions on writes).
-// Items stay in the queue until the user manually triggers "Force Sync" in Admin.
+// Debounce timer for auto-flush
+let _flushTimer = null;
+const FLUSH_DELAY_MS = 2000; // 2 seconds – batches rapid writes
+
+// Queue a sync operation and auto-flush to relays after a short debounce.
 export async function queueSync(entityType, entityId, action) {
   try {
     await db.syncQueue.add({
@@ -31,6 +34,15 @@ export async function queueSync(entityType, entityId, action) {
       action,
       createdAt: new Date().toISOString()
     });
+
+    // Schedule auto-flush (debounced so rapid writes get batched)
+    if (_flushTimer) clearTimeout(_flushTimer);
+    _flushTimer = setTimeout(() => {
+      _flushTimer = null;
+      processSyncQueue().catch(err =>
+        console.warn('Auto-sync failed:', err.message)
+      );
+    }, FLUSH_DELAY_MS);
   } catch (error) {
     console.error('Error queuing sync:', error);
   }
