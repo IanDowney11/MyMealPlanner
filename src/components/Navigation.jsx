@@ -29,6 +29,7 @@ import {
   ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import UserProfile from './UserProfile';
+import SyncStatusIndicator from './SyncStatusIndicator';
 import packageJson from '../../package.json';
 
 const APP_VERSION = packageJson.version;
@@ -127,6 +128,9 @@ function Navigation({ open, onToggle }) {
           );
         })}
       </List>
+
+      {/* Sync Status */}
+      <SyncStatusIndicator />
 
       {/* Version Number */}
       <Typography

@@ -3,6 +3,7 @@ import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon, Schedule as ScheduleIcon, Restaurant as RestaurantIcon, Link as LinkIcon, LocalOffer as TagIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
 import { getMeals, saveMeal, deleteMeal, initDB } from '../services/mealsService';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 function Meals() {
   const [meals, setMeals] = useState([]);
@@ -14,9 +15,13 @@ function Meals() {
   const [sortDirection, setSortDirection] = useState('asc');
   const [selectedTags, setSelectedTags] = useState([]);
   const [isMobile, setIsMobile] = useState(false);
+  const { dataVersion } = useSyncStatus();
 
   useEffect(() => {
     loadMeals();
+  }, [dataVersion]);
+
+  useEffect(() => {
     checkScreenSize();
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);

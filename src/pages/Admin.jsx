@@ -7,6 +7,7 @@ import { getUserTimezone, setUserTimezone, getAvailableTimezones } from '../serv
 import { getRelays, addRelay, removeRelay } from '../lib/nostr';
 import { processSyncQueue } from '../services/syncService';
 import { useAuth } from '../contexts/NostrAuthContext';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 function Admin() {
   const { user } = useAuth();
@@ -23,13 +24,14 @@ function Admin() {
   const [frequentItems, setFrequentItems] = useState([]);
   const [exportingFreqItems, setExportingFreqItems] = useState(false);
   const [importingFreqItems, setImportingFreqItems] = useState(false);
+  const { dataVersion } = useSyncStatus();
 
   useEffect(() => {
     loadMeals();
     loadFrequentItems();
     loadTimezone();
     setRelaysState(getRelays());
-  }, []);
+  }, [dataVersion]);
 
   const loadTimezone = async () => {
     try {

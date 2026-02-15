@@ -4,6 +4,7 @@ import { CssBaseline, Box, useMediaQuery, IconButton } from '@mui/material';
 import { Menu as MenuIcon } from '@mui/icons-material';
 import theme from '../theme/theme';
 import { NotificationProvider } from '../contexts/NotificationContext';
+import { SyncProvider } from '../contexts/SyncContext';
 
 // Import your page components
 import Home from '../pages/Home';
@@ -35,6 +36,7 @@ function ProtectedApp() {
 
   return (
     <NotificationProvider>
+      <SyncProvider>
       <CssBaseline />
       <OfflineIndicator />
       <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -111,6 +113,7 @@ function ProtectedApp() {
         </Box>
       </Box>
       <PWAInstallPrompt />
+      </SyncProvider>
     </NotificationProvider>
   );
 }

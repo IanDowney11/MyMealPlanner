@@ -52,6 +52,7 @@ import { getEventsForDate, saveEvent, deleteEvent } from '../services/eventsServ
 import EventModal from '../components/EventModal';
 import VersionSelectionModal from '../components/VersionSelectionModal';
 import { getUserTimezone } from '../services/timezoneService';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 const MEAL_TYPE = 'meal';
 
@@ -84,6 +85,7 @@ function MealPlannerContent() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [mealSearchTerm, setMealSearchTerm] = useState('');
   const [mealsExpanded, setMealsExpanded] = useState(false);
+  const { dataVersion } = useSyncStatus();
 
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
@@ -168,6 +170,15 @@ function MealPlannerContent() {
     window.addEventListener('resize', checkScreenSize);
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
+
+  // Re-fetch when incoming sync data arrives
+  useEffect(() => {
+    if (dataVersion > 0) {
+      loadMeals();
+      loadWeekPlan();
+      loadWeekEvents();
+    }
+  }, [dataVersion]);
 
   const loadTimezone = async () => {
     try {

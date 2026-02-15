@@ -5,16 +5,18 @@ import { CalendarMonth as CalendarIcon, Casino as RandomIcon } from '@mui/icons-
 import { initDB, getMealPlan } from '../services/mealsService';
 import { getSnacks } from '../services/snacksService';
 import { getUserTimezone } from '../services/timezoneService';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 function Home() {
   const [todaysPlannedMeal, setTodaysPlannedMeal] = useState(null);
   const [loadingPlannedMeal, setLoadingPlannedMeal] = useState(true);
   const [randomSnack, setRandomSnack] = useState(null);
   const [loadingRandomSnack, setLoadingRandomSnack] = useState(false);
+  const { dataVersion } = useSyncStatus();
 
   useEffect(() => {
     loadTodaysPlannedMeal();
-  }, []);
+  }, [dataVersion]);
 
   const loadTodaysPlannedMeal = async () => {
     try {

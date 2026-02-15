@@ -41,6 +41,7 @@ import {
   deleteShoppingListItem,
   initDB
 } from '../services/shoppingListService';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 function ShoppingList() {
   // Main state
@@ -53,10 +54,11 @@ function ShoppingList() {
   const [addingShopping, setAddingShopping] = useState(false);
   const [creatingList, setCreatingList] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { dataVersion } = useSyncStatus();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dataVersion]);
 
   const loadData = async () => {
     try {

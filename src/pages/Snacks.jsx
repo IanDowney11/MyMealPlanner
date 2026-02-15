@@ -3,6 +3,7 @@ import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Circ
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 import SnackForm from '../components/SnackForm';
 import { getSnacks, saveSnack, deleteSnack, initDB } from '../services/snacksService';
+import { useSyncStatus } from '../contexts/SyncContext';
 
 function Snacks() {
   const [snacks, setSnacks] = useState([]);
@@ -12,10 +13,11 @@ function Snacks() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
+  const { dataVersion } = useSyncStatus();
 
   useEffect(() => {
     loadSnacks();
-  }, []);
+  }, [dataVersion]);
 
   const loadSnacks = async () => {
     try {

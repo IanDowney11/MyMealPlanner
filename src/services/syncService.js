@@ -131,32 +131,72 @@ async function getEntityData(entityType, entityId) {
 }
 
 // Subscribe to relay updates for this pubkey
-export function subscribeToUpdates(pubkey, secretKey) {
-  const filter = {
-    kinds: [NOSTR_KIND],
-    authors: [pubkey],
-    '#d': [`${D_TAG_PREFIX}:`] // Prefix filter - gets all our app events
-  };
+// callbacks: { onSyncStart, onSyncComplete, onIncomingEvent, onError }
+export function subscribeToUpdates(pubkey, secretKey, callbacks = {}) {
+  const { onSyncStart, onSyncComplete, onIncomingEvent, onError } = callbacks;
+
+  // Flush any stale queue items (older than 7 days)
+  cleanStaleSyncQueue().catch(err =>
+    console.warn('Stale queue cleanup failed:', err.message)
+  );
+
+  // Process any pending queue items from previous sessions
+  processSyncQueue().catch(err =>
+    console.warn('Pending queue flush failed:', err.message)
+  );
 
   // First, do a one-time fetch for initial sync
-  initialSync(pubkey, secretKey).catch(err =>
-    console.warn('Initial sync failed:', err.message)
-  );
+  if (onSyncStart) onSyncStart();
+  initialSync(pubkey, secretKey, onIncomingEvent)
+    .then(() => {
+      if (onSyncComplete) onSyncComplete();
+    })
+    .catch(err => {
+      console.warn('Initial sync failed:', err.message);
+      if (onError) onError(err);
+    });
 
   // Then subscribe for live updates
   return subscribeToEvents(
     { kinds: [NOSTR_KIND], authors: [pubkey] },
-    (event) => handleIncomingEvent(event, secretKey),
+    async (event) => {
+      try {
+        await handleIncomingEvent(event, secretKey);
+        if (onIncomingEvent) onIncomingEvent(event);
+      } catch (err) {
+        console.warn('Live event handling failed:', err.message);
+        if (onError) onError(err);
+      }
+    },
     () => console.log('NOSTR sync: caught up with relays')
   );
 }
 
+// Clean up stale sync queue items (older than 7 days)
+async function cleanStaleSyncQueue() {
+  const STALE_DAYS = 7;
+  const cutoff = new Date(Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const staleItems = await db.syncQueue.where('createdAt').below(cutoff).toArray();
+  if (staleItems.length > 0) {
+    await db.syncQueue.bulkDelete(staleItems.map(i => i.id));
+    console.log(`Cleaned ${staleItems.length} stale sync queue items`);
+  }
+}
+
+const LAST_SYNC_KEY = 'mmp_last_sync_timestamp';
+
 // Initial sync: fetch all existing events from relays
-async function initialSync(pubkey, secretKey) {
-  const events = await fetchEvents({
+async function initialSync(pubkey, secretKey, onIncomingEvent) {
+  const lastSync = localStorage.getItem(LAST_SYNC_KEY);
+  const filter = {
     kinds: [NOSTR_KIND],
     authors: [pubkey]
-  });
+  };
+  if (lastSync) {
+    filter.since = parseInt(lastSync, 10);
+  }
+
+  const events = await fetchEvents(filter);
 
   // Deduplicate by d-tag, keeping newest
   const byDTag = new Map();
@@ -170,12 +210,23 @@ async function initialSync(pubkey, secretKey) {
     }
   }
 
+  let newestTimestamp = lastSync ? parseInt(lastSync, 10) : 0;
+
   for (const [dTag, event] of byDTag) {
     try {
       await mergeEventIntoLocal(dTag, event, secretKey);
+      if (onIncomingEvent) onIncomingEvent(event);
+      if (event.created_at > newestTimestamp) {
+        newestTimestamp = event.created_at;
+      }
     } catch (err) {
       console.warn('Failed to merge event:', dTag, err.message);
     }
+  }
+
+  // Save the newest timestamp for incremental sync next time
+  if (newestTimestamp > 0) {
+    localStorage.setItem(LAST_SYNC_KEY, String(newestTimestamp));
   }
 }
 
