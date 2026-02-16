@@ -82,6 +82,22 @@ export function SyncProvider({ children }) {
     return () => window.removeEventListener('online', handleOnline);
   }, [canSync, startSync]);
 
+  // Re-sync when tab becomes visible (WebSocket subscriptions often drop when backgrounded)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && canSync) {
+        console.log('Tab visible — re-syncing');
+        processSyncQueue().catch(err =>
+          console.warn('Visibility queue flush failed:', err.message)
+        );
+        startSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [canSync, startSync]);
+
   const retry = useCallback(() => {
     if (canSync) {
       startSync();

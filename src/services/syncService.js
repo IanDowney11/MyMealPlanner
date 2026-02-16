@@ -96,7 +96,15 @@ async function publishEntityToRelay(entityType, entityId, action, authData) {
 
   const pool = getPool();
   const relays = getRelays();
-  await Promise.allSettled(pool.publish(relays, signedEvent));
+  const results = await Promise.allSettled(pool.publish(relays, signedEvent));
+
+  // Ensure at least one relay accepted the event
+  const successes = results.filter(r => r.status === 'fulfilled');
+  if (successes.length === 0) {
+    const errors = results.map(r => r.reason?.message || 'rejected').join(', ');
+    throw new Error(`All relays rejected event: ${errors}`);
+  }
+  console.log(`Published ${entityType}:${entityId} to ${successes.length}/${relays.length} relays`);
 }
 
 // Fetch entity data from Dexie for publishing
