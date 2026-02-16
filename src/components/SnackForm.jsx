@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box } from '@mui/material';
 import { Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { getSnacks } from '../services/snacksService';
 
 function SnackForm({ snack = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -8,6 +9,7 @@ function SnackForm({ snack = null, onSave, onCancel }) {
     description: '',
     image: ''
   });
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (snack) {
       setFormData({
@@ -26,12 +28,27 @@ function SnackForm({ snack = null, onSave, onCancel }) {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!formData.title.trim()) {
       alert('Please enter a snack title');
       return;
     }
+
+    // Check for duplicate title (only when creating new snacks)
+    if (!snack) {
+      const existingSnacks = await getSnacks();
+      const duplicate = existingSnacks.find(
+        s => s.title.toLowerCase() === formData.title.trim().toLowerCase()
+      );
+      if (duplicate) {
+        alert('A snack with this title already exists.');
+        return;
+      }
+    }
+
+    setSaving(true);
 
     const snackData = {
       ...formData,
@@ -128,8 +145,9 @@ function SnackForm({ snack = null, onSave, onCancel }) {
           variant="contained"
           startIcon={<SaveIcon />}
           size="large"
+          disabled={saving}
         >
-          {snack ? 'Update Snack' : 'Save Snack'}
+          {saving ? 'Saving...' : snack ? 'Update Snack' : 'Save Snack'}
         </Button>
       </DialogActions>
     </Dialog>

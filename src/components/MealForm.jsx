@@ -17,6 +17,7 @@ function MealForm({ meal = null, onSave, onCancel }) {
   const [newVersion, setNewVersion] = useState('');
   const [newTag, setNewTag] = useState('');
   const [allExistingTags, setAllExistingTags] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (meal) {
@@ -104,12 +105,27 @@ function MealForm({ meal = null, onSave, onCancel }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!formData.title.trim()) {
       alert('Please enter a meal title');
       return;
     }
+
+    // Check for duplicate title (only when creating new meals)
+    if (!meal) {
+      const existingMeals = await getMeals();
+      const duplicate = existingMeals.find(
+        m => m.title.toLowerCase() === formData.title.trim().toLowerCase()
+      );
+      if (duplicate) {
+        alert('A meal with this title already exists.');
+        return;
+      }
+    }
+
+    setSaving(true);
 
     // Auto-add pending version if text field is not empty
     let finalFormData = { ...formData };
@@ -382,8 +398,9 @@ function MealForm({ meal = null, onSave, onCancel }) {
           variant="contained"
           startIcon={<SaveIcon />}
           size="large"
+          disabled={saving}
         >
-          {meal ? 'Update Meal' : 'Save Meal'}
+          {saving ? 'Saving...' : meal ? 'Update Meal' : 'Save Meal'}
         </Button>
       </DialogActions>
     </Dialog>

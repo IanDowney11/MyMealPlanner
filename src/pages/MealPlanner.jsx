@@ -213,7 +213,13 @@ function MealPlannerContent() {
     try {
       await initDB();
       const mealsList = await getMeals();
-      setMeals(mealsList);
+      setMeals(prev => {
+        if (prev.length === mealsList.length &&
+          prev.every((m, i) => m.id === mealsList[i].id && m.updatedAt === mealsList[i].updatedAt)) {
+          return prev;
+        }
+        return mealsList;
+      });
     } catch (error) {
       console.error('Error loading meals:', error);
     } finally {

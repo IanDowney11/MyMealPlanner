@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, IconButton, Typography, Card, CardContent, Box, TextField, Chip, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Rating, Autocomplete, Avatar, Divider } from '@mui/material';
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon, Schedule as ScheduleIcon, Restaurant as RestaurantIcon, Link as LinkIcon, LocalOffer as TagIcon } from '@mui/icons-material';
 import MealForm from '../components/MealForm';
@@ -35,7 +35,14 @@ function Meals() {
     try {
       await initDB();
       const mealsList = await getMeals();
-      setMeals(mealsList);
+      // Only update state if data actually changed to prevent image flickering
+      setMeals(prev => {
+        if (prev.length === mealsList.length &&
+          prev.every((m, i) => m.id === mealsList[i].id && m.updatedAt === mealsList[i].updatedAt)) {
+          return prev;
+        }
+        return mealsList;
+      });
     } catch (error) {
       console.error('Error loading meals:', error);
     } finally {
@@ -80,7 +87,7 @@ function Meals() {
   // Get all unique tags for the autocomplete
   const allTags = [...new Set(meals.flatMap(meal => meal.tags || []))].sort();
 
-  const filteredAndSortedMeals = meals
+  const filteredAndSortedMeals = useMemo(() => meals
     .filter(meal => {
       const searchLower = searchTerm.toLowerCase();
       const titleMatch = meal.title?.toLowerCase().includes(searchLower) || false;
@@ -130,7 +137,7 @@ function Meals() {
         const comparison = aValue - bValue;
         return sortDirection === 'asc' ? comparison : -comparison;
       }
-    });
+    }), [meals, searchTerm, selectedTags, sortField, sortDirection]);
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);

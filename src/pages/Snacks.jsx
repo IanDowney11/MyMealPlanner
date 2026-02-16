@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, IconButton, Typography, Card, CardContent, Box, TextField, CircularProgress, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 import { Add as AddIcon, Clear as ClearIcon, Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, UnfoldMore as UnfoldMoreIcon, KeyboardArrowUp as ArrowUpIcon, KeyboardArrowDown as ArrowDownIcon } from '@mui/icons-material';
 import SnackForm from '../components/SnackForm';
@@ -23,7 +23,14 @@ function Snacks() {
     try {
       await initDB();
       const snacksList = await getSnacks();
-      setSnacks(snacksList);
+      // Only update state if data actually changed to prevent image flickering
+      setSnacks(prev => {
+        if (prev.length === snacksList.length &&
+          prev.every((s, i) => s.id === snacksList[i].id && s.updatedAt === snacksList[i].updatedAt)) {
+          return prev;
+        }
+        return snacksList;
+      });
     } catch (error) {
       console.error('Error loading snacks:', error);
     } finally {
@@ -78,7 +85,7 @@ function Snacks() {
       <ArrowDownIcon sx={{ fontSize: 16 }} />;
   };
 
-  const filteredAndSortedSnacks = snacks
+  const filteredAndSortedSnacks = useMemo(() => snacks
     .filter(snack =>
       snack.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (snack.description && snack.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -102,7 +109,7 @@ function Snacks() {
       } else {
         return bVal.localeCompare(aVal);
       }
-    });
+    }), [snacks, searchTerm, sortField, sortDirection]);
 
   if (loading) {
     return (
