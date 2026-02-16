@@ -1,39 +1,26 @@
 // Service Worker for Meal Planner PWA
-const CACHE_VERSION = '2.0.1';
-const CACHE_NAME = `meal-planner-v${CACHE_VERSION}`;
-const urlsToCache = [
-  '/',
-  '/manifest.webmanifest',
-  '/offline.html'
-];
+const CACHE_NAME = 'meal-planner-v1';
 
-// Install event - cache app shell
+// Install event - take over immediately
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-      .catch((error) => {
-        console.error('Cache addAll failed:', error);
-      })
-  );
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - claim clients and clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
         cacheNames
           .filter((name) => name.startsWith('meal-planner-') && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
-      );
-    })
+      )
+    )
   );
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network, then offline page
+// Fetch event
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) {
@@ -46,12 +33,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Navigation requests (HTML pages): network-first so new deploys are always picked up
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => caches.match('/offline.html'))
+    );
+    return;
+  }
+
+  // Static assets (JS/CSS with hashes): cache-first for speed
   event.respondWith(
     caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
+      .then((cached) => {
+        if (cached) return cached;
 
         return fetch(event.request).then((response) => {
           if (!response || response.status !== 200 || response.type !== 'basic') {
@@ -59,19 +54,13 @@ self.addEventListener('fetch', (event) => {
           }
 
           const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
 
           return response;
         });
       })
-      .catch(() => {
-        // Network failed and no cache - serve offline page for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('/offline.html');
-        }
-      })
+      .catch(() => undefined)
   );
 });
