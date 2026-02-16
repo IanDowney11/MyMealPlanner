@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, Input, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction, Divider, Autocomplete, CircularProgress } from '@mui/material';
-import { Save as SaveIcon, Cancel as CancelIcon, CloudUpload as UploadIcon, Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/icons-material';
+import { Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Typography, Box, Rating, FormControl, FormLabel, IconButton, List, ListItem, ListItemText, ListItemSecondaryAction, Divider, Autocomplete } from '@mui/material';
+import { Save as SaveIcon, Cancel as CancelIcon, Add as AddIcon, Delete as DeleteIcon, Link as LinkIcon } from '@mui/icons-material';
 import { getMeals } from '../services/mealsService';
-import { processImageFile } from '../utils/imageUtils';
-import { uploadImageToNostrBuild } from '../lib/imageUpload';
 
 function MealForm({ meal = null, onSave, onCancel }) {
   const [formData, setFormData] = useState({
@@ -16,57 +14,23 @@ function MealForm({ meal = null, onSave, onCancel }) {
     versions: [],
     tags: []
   });
-  const [imagePreview, setImagePreview] = useState('');
   const [newVersion, setNewVersion] = useState('');
   const [newTag, setNewTag] = useState('');
   const [allExistingTags, setAllExistingTags] = useState([]);
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
-    const loadAndResizeMeal = async () => {
-      if (meal) {
-        // Check if the existing image needs resizing
-        let processedImage = meal.image || '';
-
-        if (meal.image && meal.image.startsWith('data:image')) {
-          try {
-            // Check if image is larger than 50KB
-            const base64String = meal.image.split(',')[1];
-            const sizeInBytes = (base64String.length * 3) / 4;
-            const sizeInKB = sizeInBytes / 1024;
-
-            // If image is larger than 50KB, resize it
-            if (sizeInKB > 50) {
-              console.log(`Existing image is ${sizeInKB.toFixed(2)}KB, resizing to 50KB...`);
-              setIsProcessingImage(true);
-              const { resizeImageToMaxSize } = await import('../utils/imageUtils');
-              processedImage = await resizeImageToMaxSize(meal.image, 50);
-              console.log('Image resized successfully');
-            }
-          } catch (error) {
-            console.error('Error resizing existing image:', error);
-            // Keep original image if resize fails
-            processedImage = meal.image;
-          } finally {
-            setIsProcessingImage(false);
-          }
-        }
-
-        setFormData({
-          title: meal.title || '',
-          description: meal.description || '',
-          rating: meal.rating || 1,
-          freezerPortions: meal.freezerPortions || 0,
-          image: processedImage,
-          recipeUrl: meal.recipeUrl || '',
-          versions: meal.versions || [],
-          tags: meal.tags || []
-        });
-        setImagePreview(processedImage);
-      }
-    };
-
-    loadAndResizeMeal();
+    if (meal) {
+      setFormData({
+        title: meal.title || '',
+        description: meal.description || '',
+        rating: meal.rating || 1,
+        freezerPortions: meal.freezerPortions || 0,
+        image: meal.image || '',
+        recipeUrl: meal.recipeUrl || '',
+        versions: meal.versions || [],
+        tags: meal.tags || []
+      });
+    }
   }, [meal]);
 
   useEffect(() => {
@@ -90,34 +54,6 @@ function MealForm({ meal = null, onSave, onCancel }) {
       ...prev,
       [name]: name === 'rating' || name === 'freezerPortions' ? parseInt(value) || 0 : value
     }));
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        setIsProcessingImage(true);
-
-        // Process and resize image to max 50KB for preview
-        const resizedImageData = await processImageFile(file, 50);
-        setImagePreview(resizedImageData);
-
-        // Upload to nostr.build
-        try {
-          const imageUrl = await uploadImageToNostrBuild(resizedImageData);
-          setFormData(prev => ({ ...prev, image: imageUrl }));
-          setImagePreview(imageUrl);
-        } catch (uploadError) {
-          console.warn('nostr.build upload failed, using base64 fallback:', uploadError);
-          setFormData(prev => ({ ...prev, image: resizedImageData }));
-        }
-      } catch (error) {
-        console.error('Error processing image:', error);
-        alert('Error processing image. Please try a different image.');
-      } finally {
-        setIsProcessingImage(false);
-      }
-    }
   };
 
   const handleAddVersion = () => {
@@ -282,47 +218,34 @@ function MealForm({ meal = null, onSave, onCancel }) {
             inputProps={{ min: 0 }}
           />
 
-          <FormControl sx={{ mt: 2, mb: 2 }} fullWidth>
-            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Image
-            </FormLabel>
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-              Images are automatically resized to max 50KB for optimal performance
-            </Typography>
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={isProcessingImage ? <CircularProgress size={20} /> : <UploadIcon />}
-              disabled={isProcessingImage}
-              sx={{ mb: 2 }}
-            >
-              {isProcessingImage ? 'Processing...' : 'Choose Image'}
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                sx={{ display: 'none' }}
-                disabled={isProcessingImage}
+          <TextField
+            name="image"
+            label="Image URL"
+            value={formData.image}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            variant="outlined"
+            placeholder="https://example.com/image.jpg"
+            helperText="Paste a URL to an image"
+          />
+          {formData.image && (
+            <Box sx={{ mt: 1, mb: 2 }}>
+              <Box
+                component="img"
+                src={formData.image}
+                alt="Preview"
+                sx={{
+                  width: '100%',
+                  maxHeight: 200,
+                  objectFit: 'cover',
+                  borderRadius: 1,
+                  border: 1,
+                  borderColor: 'grey.300'
+                }}
               />
-            </Button>
-            {imagePreview && (
-              <Box sx={{ mt: 1 }}>
-                <Box
-                  component="img"
-                  src={imagePreview}
-                  alt="Preview"
-                  sx={{
-                    width: '100%',
-                    maxHeight: 200,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                    border: 1,
-                    borderColor: 'grey.300'
-                  }}
-                />
-              </Box>
-            )}
-          </FormControl>
+            </Box>
+          )}
 
           <FormControl sx={{ mt: 3, mb: 2 }} fullWidth>
             <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
