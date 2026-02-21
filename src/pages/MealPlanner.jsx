@@ -90,22 +90,22 @@ function MealPlannerContent() {
   // Calculate week dates based on selected week offset
   const getWeekDates = (weekOffset = selectedWeekOffset) => {
     const today = new Date();
-    const monday = getMonday(today);
+    const sunday = getSunday(today);
 
     // Add the week offset (7 days per week)
-    monday.setDate(monday.getDate() + (weekOffset * 7));
+    sunday.setDate(sunday.getDate() + (weekOffset * 7));
 
     const dates = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
       dates.push(date);
     }
 
     return dates;
   };
 
-  const getMonday = (date) => {
+  const getSunday = (date) => {
     // Get the day-of-week in the user's timezone
     const dayStr = date.toLocaleString('en-US', {
       timeZone: timezone,
@@ -113,10 +113,9 @@ function MealPlannerContent() {
     });
     const dayMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
     const dayOfWeek = dayMap[dayStr];
-    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
     const d = new Date(date);
-    d.setDate(d.getDate() - daysToSubtract);
+    d.setDate(d.getDate() - dayOfWeek);
     return d;
   };
 
