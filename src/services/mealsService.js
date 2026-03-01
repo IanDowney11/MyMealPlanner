@@ -282,30 +282,31 @@ export async function deleteMealPlan(date) {
 
 // Utility functions
 
-async function getSunday(dateStr) {
-  // Parse the YYYY-MM-DD date string and find the Sunday of that week
+async function getMonday(dateStr) {
+  // Parse the YYYY-MM-DD date string and find the Monday of that week
   // Work entirely with date strings to avoid timezone shifting issues
   const [year, month, day] = dateStr.split('-').map(Number);
 
   // Create a date at noon to avoid DST edge cases
   const date = new Date(year, month - 1, day, 12, 0, 0);
 
-  // getDay() returns 0 for Sunday, so subtract dayOfWeek to get back to Sunday
+  // getDay() is fine here since we constructed the date from local components
   const dayOfWeek = date.getDay();
+  const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-  const sunday = new Date(date);
-  sunday.setDate(sunday.getDate() - dayOfWeek);
+  const monday = new Date(date);
+  monday.setDate(monday.getDate() - daysToSubtract);
 
   // Extract year/month/day directly from the local Date object
   // (safe because we constructed it from local components, not UTC)
-  const sYear = sunday.getFullYear();
-  const sMonth = String(sunday.getMonth() + 1).padStart(2, '0');
-  const sDay = String(sunday.getDate()).padStart(2, '0');
-  return `${sYear}-${sMonth}-${sDay}`;
+  const mYear = monday.getFullYear();
+  const mMonth = String(monday.getMonth() + 1).padStart(2, '0');
+  const mDay = String(monday.getDate()).padStart(2, '0');
+  return `${mYear}-${mMonth}-${mDay}`;
 }
 
 async function getWeekKey(dateStr) {
-  return getSunday(dateStr);
+  return getMonday(dateStr);
 }
 
 // Database initialization - no-op for Dexie (auto-initialized)
@@ -317,10 +318,10 @@ export async function initDB() {
 export async function copyLastWeekMealPlans(currentWeekKey) {
   try {
     const [year, month, day] = currentWeekKey.split('-').map(Number);
-    const currentSundayDate = new Date(year, month - 1, day, 12, 0, 0);
-    const lastSundayDate = new Date(currentSundayDate);
-    lastSundayDate.setDate(lastSundayDate.getDate() - 7);
-    const lastWeekKey = await formatDateInUserTimezone(lastSundayDate);
+    const currentMondayDate = new Date(year, month - 1, day, 12, 0, 0);
+    const lastMondayDate = new Date(currentMondayDate);
+    lastMondayDate.setDate(lastMondayDate.getDate() - 7);
+    const lastWeekKey = await formatDateInUserTimezone(lastMondayDate);
 
     const lastWeekPlans = await getWeekMealPlans(lastWeekKey);
 
@@ -343,11 +344,11 @@ export async function copyLastWeekMealPlans(currentWeekKey) {
       const [lastYear, lastMonth, lastDay] = plan.date.split('-').map(Number);
       const lastWeekDate = new Date(lastYear, lastMonth - 1, lastDay, 12, 0, 0);
       const dayOfWeek = lastWeekDate.getDay();
-      const sundayOffset = dayOfWeek;
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
       const [currYear, currMonth, currDay] = currentWeekKey.split('-').map(Number);
       const newDate = new Date(currYear, currMonth - 1, currDay, 12, 0, 0);
-      newDate.setDate(newDate.getDate() + sundayOffset);
+      newDate.setDate(newDate.getDate() + mondayOffset);
       const newDateStr = await formatDateInUserTimezone(newDate);
 
       const now = new Date().toISOString();
