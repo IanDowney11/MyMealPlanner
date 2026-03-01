@@ -94,6 +94,40 @@ export async function signEvent(eventTemplate, secretKey) {
   return finalizeEvent(eventTemplate, secretKey);
 }
 
+export async function testRelayConnectivity(relayUrl, timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    let ws;
+    const timer = setTimeout(() => {
+      if (ws) ws.close();
+      resolve({ url: relayUrl, ok: false, error: 'Timeout', latencyMs: null });
+    }, timeoutMs);
+
+    const start = Date.now();
+    try {
+      ws = new WebSocket(relayUrl);
+      ws.onopen = () => {
+        const latencyMs = Date.now() - start;
+        clearTimeout(timer);
+        ws.close();
+        resolve({ url: relayUrl, ok: true, error: null, latencyMs });
+      };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        ws.close();
+        resolve({ url: relayUrl, ok: false, error: 'Connection failed', latencyMs: null });
+      };
+    } catch (err) {
+      clearTimeout(timer);
+      resolve({ url: relayUrl, ok: false, error: err.message, latencyMs: null });
+    }
+  });
+}
+
+export async function testAllRelays(timeoutMs = 5000) {
+  const relays = getRelays();
+  return Promise.all(relays.map(r => testRelayConnectivity(r, timeoutMs)));
+}
+
 export async function publishEvent(event) {
   const p = getPool();
   const relays = getRelays();

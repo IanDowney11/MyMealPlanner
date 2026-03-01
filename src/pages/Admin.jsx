@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Typography, Card, CardContent, Box, Grid, CircularProgress, Alert, Input, Autocomplete, TextField, List, ListItem, ListItemText, ListItemSecondaryAction, IconButton, Paper } from '@mui/material';
-import { FileDownload as ExportIcon, FileUpload as ImportIcon, Public as TimezoneIcon, Sync as SyncIcon, Delete as DeleteIcon, Add as AddIcon, Key as KeyIcon } from '@mui/icons-material';
+import { FileDownload as ExportIcon, FileUpload as ImportIcon, Public as TimezoneIcon, Sync as SyncIcon, Delete as DeleteIcon, Add as AddIcon, Key as KeyIcon, NetworkCheck as NetworkCheckIcon } from '@mui/icons-material';
 import { getMeals, saveMeal, initDB } from '../services/mealsService';
 import { getFrequentItems, addFrequentItem } from '../services/shoppingListService';
 import { getUserTimezone, setUserTimezone, getAvailableTimezones } from '../services/timezoneService';
-import { getRelays, addRelay, removeRelay } from '../lib/nostr';
+import { getRelays, addRelay, removeRelay, testRelayConnectivity } from '../lib/nostr';
 import { processSyncQueue } from '../services/syncService';
 import { useAuth } from '../contexts/NostrAuthContext';
 import { useSyncStatus } from '../contexts/SyncContext';
@@ -21,6 +21,8 @@ function Admin() {
   const [relays, setRelaysState] = useState([]);
   const [newRelay, setNewRelay] = useState('');
   const [syncing, setSyncing] = useState(false);
+  const [relayStatus, setRelayStatus] = useState({}); // { [url]: { ok, error, latencyMs, testing } }
+  const [testingAll, setTestingAll] = useState(false);
   const [frequentItems, setFrequentItems] = useState([]);
   const [exportingFreqItems, setExportingFreqItems] = useState(false);
   const [importingFreqItems, setImportingFreqItems] = useState(false);
@@ -302,6 +304,25 @@ function Admin() {
     setRelaysState(updated);
   };
 
+  const handleTestRelay = async (url) => {
+    setRelayStatus(prev => ({ ...prev, [url]: { testing: true } }));
+    const result = await testRelayConnectivity(url);
+    setRelayStatus(prev => ({ ...prev, [url]: { ...result, testing: false } }));
+  };
+
+  const handleTestAllRelays = async () => {
+    setTestingAll(true);
+    const statusUpdate = {};
+    relays.forEach(url => { statusUpdate[url] = { testing: true }; });
+    setRelayStatus(statusUpdate);
+
+    await Promise.all(relays.map(async (url) => {
+      const result = await testRelayConnectivity(url);
+      setRelayStatus(prev => ({ ...prev, [url]: { ...result, testing: false } }));
+    }));
+    setTestingAll(false);
+  };
+
   const handleForceSync = async () => {
     try {
       setSyncing(true);
@@ -427,36 +448,76 @@ function Admin() {
 
           <Paper variant="outlined" sx={{ mb: 2 }}>
             <List dense>
-              {relays.map((relay, index) => (
-                <ListItem key={relay} divider={index < relays.length - 1}>
-                  <ListItemText
-                    primary={relay}
-                    primaryTypographyProps={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                  />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleRemoveRelay(relay)}
-                      color="error"
-                      size="small"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
+              {relays.map((relay, index) => {
+                const status = relayStatus[relay];
+                return (
+                  <ListItem key={relay} divider={index < relays.length - 1}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 1.5 }}>
+                      {status?.testing ? (
+                        <CircularProgress size={14} />
+                      ) : status?.ok === true ? (
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: 'success.main' }} title={`${status.latencyMs}ms`} />
+                      ) : status?.ok === false ? (
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: 'error.main' }} title={status.error} />
+                      ) : (
+                        <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: 'grey.400' }} />
+                      )}
+                    </Box>
+                    <ListItemText
+                      primary={relay}
+                      secondary={status && !status.testing ? (
+                        status.ok ? `Connected (${status.latencyMs}ms)` : status.error
+                      ) : null}
+                      primaryTypographyProps={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      secondaryTypographyProps={{
+                        color: status?.ok ? 'success.main' : 'error.main',
+                        fontSize: '0.75rem'
+                      }}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        onClick={() => handleTestRelay(relay)}
+                        disabled={status?.testing}
+                        size="small"
+                        title="Test connectivity"
+                        sx={{ mr: 0.5 }}
+                      >
+                        <NetworkCheckIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        edge="end"
+                        onClick={() => handleRemoveRelay(relay)}
+                        color="error"
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                );
+              })}
             </List>
           </Paper>
 
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={syncing ? <CircularProgress size={20} color="inherit" /> : <SyncIcon />}
-            onClick={handleForceSync}
-            disabled={syncing}
-          >
-            {syncing ? 'Syncing...' : 'Force Sync'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={testingAll ? <CircularProgress size={20} color="inherit" /> : <NetworkCheckIcon />}
+              onClick={handleTestAllRelays}
+              disabled={testingAll || relays.length === 0}
+            >
+              {testingAll ? 'Testing...' : 'Test All Relays'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={syncing ? <CircularProgress size={20} color="inherit" /> : <SyncIcon />}
+              onClick={handleForceSync}
+              disabled={syncing}
+            >
+              {syncing ? 'Syncing...' : 'Force Sync'}
+            </Button>
+          </Box>
         </CardContent>
       </Card>
 
